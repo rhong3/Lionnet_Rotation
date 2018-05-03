@@ -1,23 +1,12 @@
-import matplotlib
-
-matplotlib.use('Agg')
 import numpy as np  # linear algebra
-import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
-import cv2
-np.random.seed(1234)
 import torch
 from torch.autograd import Variable
 from skimage import io
-from imageio import imread, imsave
 from torch.nn import functional as F
-from torch.nn import init
 import skimage.morphology as mph
-import matplotlib.pyplot as plt
 import sys
 import os
 import pickle
-import time
-from skimage.transform import resize
 import scipy.misc
 
 output = sys.argv[1]
@@ -155,7 +144,7 @@ def dataloader(mode='test'):
         for i in handles:
             im = io.imread('Images/'+i).astype(np.uint8)
             # print(np.shape(im))
-            im = cv2.fastNlMeansDenoising(im,h=10,templateWindowSize=7,searchWindowSize=21)
+            # im = cv2.fastNlMeansDenoising(im,h=10,templateWindowSize=7,searchWindowSize=21)
             im = im / im.max() * 255
             im = 255 - im
             im_c = (im - im.mean())
