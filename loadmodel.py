@@ -8,6 +8,8 @@ import sys
 import os
 import pickle
 import scipy.misc
+from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
+                                 denoise_wavelet, estimate_sigma)
 
 output = sys.argv[1]
 md = sys.argv[2]
@@ -142,22 +144,24 @@ def dataloader(mode='test'):
         images['ID'] = []
         # images['Dim'] = []
         for i in handles:
-            im = io.imread('Images/'+i).astype(np.uint8)
+            im = io.imread('Images/'+i)
             # print(np.shape(im))
-            # im = cv2.fastNlMeansDenoising(im,h=10,templateWindowSize=7,searchWindowSize=21)
+            sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
+            print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
+            im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
             im = im / im.max() * 255
             im = 255 - im
             im_c = (im - im.mean())
             im_c[im_c < 0] = 0
             # im = (im_c / im_c.max() * 255)
-            # im = np.invert(im.astype(np.uint8))
+            im = np.invert(im.astype(np.uint8))
             image = np.empty((im.shape[0], 3, im.shape[1], im.shape[2]), dtype='float32')
             for j in range(im.shape[0]):
                 for k in range(3):
                     image[j,k,:,:] = im[j,:,:]
             images['Image'].append(image)
             j = i.split('.')[0]
-            io.imsave('Images/' +'norm_'+ j + '.tif', im)
+            # io.imsave('Images/' +'norm_'+ j + '.tif', im)
             images['ID'].append(j)
 
         with open(mode + '_norm2.pickle', 'wb') as f:
@@ -195,8 +199,10 @@ def test(tesample, model):
             pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
-            pred_np = mph.remove_small_objects(pred_np, min_size=600)
-            pred_np = mph.remove_small_holes(pred_np, min_size=600)
+            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=800, connectivity=2).astype(np.uint8)
+            # selem = mph.disk(2)
+            # pred_np = mph.opening(pred_np, selem)
+            pred_np = mph.remove_small_holes(pred_np, min_size=120, connectivity=2)
             # print(np.shape(pred_np))
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
@@ -206,3 +212,4 @@ def test(tesample, model):
 sample = dataloader('test')
 
 test(sample, model)
+

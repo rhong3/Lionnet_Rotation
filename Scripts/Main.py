@@ -1,9 +1,7 @@
 import matplotlib
-
 matplotlib.use('Agg')
 import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
-
 np.random.seed(1234)
 import torch
 from torch.autograd import Variable
@@ -17,18 +15,21 @@ import os
 import pickle
 import time
 
+# Type in output folder, epoch number, and initial learning rate
 output = sys.argv[1]
 eps = sys.argv[2]
 LR = sys.argv[3]
 
-
+# Make directory if not exist
 if not os.path.exists('../' + output):
     os.makedirs('../' + output)
 
 # Use cuda or not
 USE_CUDA = 1
 
+# Data loader
 def dataloader(handles, mode = 'train'):
+    # If pickle exists, load it
     try:
         with open('../inputs/mirror_roll/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
@@ -38,17 +39,21 @@ def dataloader(handles, mode = 'train'):
         images['Label'] = []
         images['ID'] = []
         images['Dim'] = []
+        # For each image
         for idx, row in handles.iterrows():
             im = imread(row['Image'])
+            # Normalization
             im = im / im.max() * 255
             im_aug = []
             shape = im.shape[0]
+            # Training set will augment
             if mode == 'train':
                 ima = np.rot90(im)
                 imb = np.rot90(ima)
                 imc = np.rot90(imb)
                 imd = np.fliplr(im)
                 ime = np.flipud(im)
+            # rearrange channels
             image = np.empty((3, shape, shape), dtype='float32')
             for i in range(3):
                 image[i,:,:] = im[:,:,i]
@@ -80,6 +85,7 @@ def dataloader(handles, mode = 'train'):
             if mode != 'test':
                 la_aug = []
                 la = imread(row['Label'])
+                # Augment for label
                 if mode == 'train':
                     laa = np.rot90(la)
                     lab = np.rot90(laa)
@@ -100,7 +106,7 @@ def dataloader(handles, mode = 'train'):
                     la_aug.append(lad)
                     la_aug.append(lae)
                 images['Label'].append(np.array(la_aug))
-
+            # For test set, save dimension for post processing
             elif mode == 'test':
                 images['Dim'].append([(row['Width'], row['Height'])])
             images['ID'].append(row['ID'])
@@ -111,7 +117,7 @@ def dataloader(handles, mode = 'train'):
             images = pickle.load(f)
     return images
 
-
+# UNet model
 class UNet_down_block(torch.nn.Module):
     def __init__(self, input_channel, output_channel, down_size):
         super(UNet_down_block, self).__init__()
@@ -219,7 +225,7 @@ def init_weights(module):
         elif name.find('bias') != -1:
             Cuda(init.constant(param.data, 0).type(torch.DoubleTensor))
 
-
+# Cuda
 def Cuda(obj):
     if USE_CUDA:
         if isinstance(obj, tuple):
@@ -230,18 +236,16 @@ def Cuda(obj):
             return obj.cuda()
     return obj
 
-
+# Early stop function
 def losscp (list):
     newlist = np.sort(list)
-    #print('list',list)
-    #print('nlist', newlist)
     if np.array_equal(np.array(list), np.array(newlist)):
         return 1
     else:
         return 0
 
 
-
+# Cut predicted test image back to original size
 def back_scale(model_im, im_shape):
     temp = np.reshape(model_im, [model_im.shape[-2], model_im.shape[-1]])
     row_size_left = (temp.shape[0] - im_shape[0][1]) // 2
@@ -258,7 +262,7 @@ def back_scale(model_im, im_shape):
         new_im = temp[row_size_left:-row_size_right, col_size_left:-col_size_right]
     return new_im
 
-
+# Vectorize predicted test images
 def rle_encoding(x):
     dots = np.where(x.T.flatten() == 1)[0]
     run_lengths = []
@@ -269,13 +273,13 @@ def rle_encoding(x):
         prev = b
     return run_lengths
 
-
+# Vectorize predicted test images
 def prob_to_rles(x, cutoff=0.5):
     lab_img = label(x > cutoff)
     for i in range(1, lab_img.max() + 1):
         yield rle_encoding(lab_img == i)
 
-
+# Dice loss function
 def dice_loss(input, target):
     smooth = 1.
     iflat = input.view(-1).cpu()
@@ -283,6 +287,7 @@ def dice_loss(input, target):
     intersection = (iflat * tflat).sum()
     return 1.0 - (((2. * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth)))
 
+# PPV metric function
 def metric(y_pred, target):
     pred = Cuda((y_pred.view(-1) > 0.5).type(torch.FloatTensor))
     target_vec = Cuda(target.view(-1).type(torch.FloatTensor))
@@ -293,128 +298,126 @@ def metric(y_pred, target):
     return ppv
 
 
-
+# Training and validation method
 def train(bs, sample, vasample, ep, ilr):
+    # Initialize learning rate decay and learning rate
     lr_dec = 1
     init_lr = ilr
-
+    # model
     model = Cuda(UNet())
+    # initialize weight
     init_weights(model)
+    # optimizer
     opt = torch.optim.Adam(model.parameters(), lr=init_lr)
     opt.zero_grad()
+    # train and validation samples
     rows_trn = len(sample['Label'])
     rows_val = len(vasample['Label'])
+    # Batch per epoch
     batches_per_epoch = rows_trn // bs
     losslists = []
-    # dicelist = []
     vlosslists = []
-    # vdicelist = []
 
     for epoch in range(ep):
+        # Learning rate
         lr = init_lr * lr_dec
         order = np.arange(rows_trn)
         losslist = []
         tr_metric_list = []
         va_metric_list = []
         for itr in range(batches_per_epoch):
-            # start1 = time.time()
             rows = order[itr * bs: (itr + 1) * bs]
             if itr + 1 == batches_per_epoch:
                 rows = order[itr * bs:]
             # read in a batch
             trim = sample['Image'][rows[0]]
             trla = sample['Label'][rows[0]]
+            # read in augmented images
             for iit in range(6):
                 trimm = trim[iit:iit + 1, :, :, :]
                 trlaa = trla[iit:iit + 1, :, :, :]
+                # Calculate label positive and negative ratio
                 label_ratio = (trlaa>0).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>0).sum())
-                # add_weight = np.ones([1, 1, trlaa.shape[2], trlaa.shape[3]]) * 255 #For no weight only
-                # loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor))) #For no weight only
-                # print(label_ratio)
+                # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
                     add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
                     add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                # If equal to 1, no weight added
                 elif label_ratio == 1:
                     add_weight = np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]) * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                # print(add_weight.max(), add_weight.min())
-                ## (1+x)/x = 1/label_ratio
-                ## x = 1/(1/label_ratio - 1)
+                # Cuda and tensor inputs and label
                 x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
                 y = Cuda(Variable(torch.from_numpy(trlaa / 255).type(torch.FloatTensor)))
-                pred_mask = model(x) #.cpu()  # .round()
+                # Prediction
+                pred_mask = model(x)
+                # BCE and dice loss
                 loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
                 losslist.append(loss.data.numpy()[0])
                 loss.backward()
-                # dice = 1 - dice_loss(F.sigmoid(pred_mask), y)
-                # dicelist.append(dice.data.numpy())
+                # ppv metric
                 tr_metric = metric(F.sigmoid(pred_mask), y)
                 tr_metric_list.append(tr_metric)
-            # if itr % 10 == 0:
-                #print('train', itr, np.mean(tr_metric_list))
-                # elapsed1 = time.time() - start1
-                # print("ten samples:", elapsed1)
-                # start1 = time.time()
-                # # loss += tr_metric
+            opt.step()
+            opt.zero_grad()
 
         vlosslist = []
+        # For validation set
         for itr in range(rows_val):
             vaim = vasample['Image'][itr]
             vala = vasample['Label'][itr]
             for iit in range(1):
+                # Load one batch
                 vaimm = vaim[iit:iit + 1, :, :, :]
                 valaa = vala[iit:iit + 1, :, :, :]
+                # Calculate label positive and negative ratio
                 label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
-                # add_weight = np.ones([1, 1, valaa.shape[2], valaa.shape[3]]) * 255 #For no weight only
-                # loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor))) #For no weight only
-                # print(label_ratio)
+                # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
                     add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
                     add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                # If equal to 1, no weight added
                 elif label_ratio == 1:
                     add_weight = np.ones([1,1,valaa.shape[2], valaa.shape[3]]) * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                # print(add_weight.max(), add_weight.min())
+                # cuda and tensor sample
                 xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                 yv = Cuda(Variable(torch.from_numpy(valaa / 255).type(torch.FloatTensor)))
-                pred_maskv = model(xv) #.cpu()  # .round()
+                # prediction
+                pred_maskv = model(xv)
+                # dice and BCE loss
                 vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
                 vlosslist.append(vloss.data.numpy()[0])
-                # vdice = 1 - dice_loss(F.sigmoid(pred_maskv), yv)
-                # vdicelist.append(vdice)
+                # ppv metric
                 va_metric = metric(F.sigmoid(pred_maskv), yv)
                 va_metric_list.append(va_metric)
 
-                # if itr % 10 == 0:
-                #     print('val', itr, np.mean(va_metric_list))
-                # vloss += va_metric
         lossa = np.mean(losslist)
         vlossa = np.mean(vlosslist)
         tr_score = np.mean(tr_metric_list)
         va_score = np.mean(va_metric_list)
-        # dicescore = np.mean(dicelist)
-        # vdicescore = np.mean(vdicelist)
+        # Print epoch summary
         print(
             'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train Score {:>1.5f} | Val Score {:>1.5f} '.format(
                 epoch + 1, lr, lossa, vlossa, tr_score, va_score))
-        opt.step()
-        opt.zero_grad()
         losslists.append(lossa)
         vlosslists.append(vlossa)
 
         for param_group in opt.param_groups:
             param_group['lr'] = lr
-
+        # Save model every 10 epoch
         if (epoch + 1) % 10 == 0:
             checkpoint = {
                 'epoch': epoch + 1,
@@ -422,11 +425,11 @@ def train(bs, sample, vasample, ep, ilr):
                 'optimizer': opt.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/unet-{}'.format(epoch + 1))
-
+        # if no change or increase in loss for consecutive 6 epochs, decrease learning rate by 10 folds
         if epoch > 6:
             if losscp(losslists[-5:]) or losscp(vlosslists[-5:]):
                 lr_dec = lr_dec / 10
-
+        # if no change or increase in loss for consecutive 15 epochs, save validation predictions and stop training
         if epoch > 15:
             if losscp(losslists[-15:]) or losscp(vlosslists[-15:]):
                 for itr in range(rows_val):
@@ -434,7 +437,7 @@ def train(bs, sample, vasample, ep, ilr):
                     for iit in range(1):
                         vaimm = vaim[iit:iit + 1, :, :, :]
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
-                        pred_maskv = model(xv)  # .cpu()
+                        pred_maskv = model(xv)
                         pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8) * 255
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
@@ -449,7 +452,7 @@ def train(bs, sample, vasample, ep, ilr):
     plt.savefig('../' + output + '/loss.png')
     return model
 
-
+# method for test
 def test(tesample, model, group):
     test_ids = []
     rles = []
@@ -459,35 +462,41 @@ def test(tesample, model, group):
         teim = tesample['Image'][itr]
         teid = tesample['ID'][itr]
         tedim = tesample['Dim'][itr]
+        # cuda and tensor input
         xt = Cuda(Variable(torch.from_numpy(teim).type(torch.FloatTensor)))
+        # prediciton
         pred_mask = model(xt)
-        # pred_mask = pred_mask(pred_mask > 0.5).type(torch.FloatTensor)
+        # binarize output mask
         pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
+        # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
+        # save predicted mask
         imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
+        # vectorize mask
         rle = list(prob_to_rles(pred_np))
         rles.extend(rle)
         test_ids.extend([teid] * len(rle))
+    # save vectorize masks as CSV
     sub = pd.DataFrame()
     sub['ImageId'] = test_ids
     sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
 
     return sub
 
-
+# Read in files containing paths to training, validation, and testing images
 tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
                        usecols=['Image', 'Label', 'Width', 'Height', 'ID'])
 va = pd.read_csv('../inputs/stage_1_test/vsamples.csv', header=0,
                        usecols=['Image', 'Label', 'Width', 'Height', 'ID'])
-# tr = tr.loc[:200,:]
-# vasample = vasample.loc[:2,:]
 te = pd.read_csv('../inputs/stage_2_test/samples.csv', header=0, usecols=['Image', 'ID', 'Width', 'Height'])
-
+# Load in images
 trsample = dataloader(tr, 'train')
 vasample = dataloader(va, 'val')
 tebsample = dataloader(te, 'test')
 
-
+# training
 model = train(1, trsample, vasample, int(eps), float(LR))
+# test set prediction
 tebsub = test(tebsample, model, 'stage_2_test')
+# save vectorize masks as CSV
 tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
