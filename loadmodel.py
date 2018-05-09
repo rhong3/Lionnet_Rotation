@@ -8,6 +8,9 @@ import sys
 import os
 import pickle
 import scipy.misc
+from scipy import ndimage as ndi
+from skimage.feature import peak_local_max
+import skimage.segmentation as seg
 from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
                                  denoise_wavelet, estimate_sigma)
 
@@ -146,9 +149,9 @@ def dataloader(mode='test'):
         for i in handles:
             im = io.imread('Images/'+i)
             # print(np.shape(im))
-            sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
-            print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
-            im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
+            # sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
+            # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
+            # im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
             im = im / im.max() * 255
             im = 255 - im
             im_c = (im - im.mean())
@@ -196,14 +199,19 @@ def test(tesample, model):
             xt = Cuda(Variable(torch.from_numpy(teim[itt:itt+1, :, :, :]).type(torch.FloatTensor)))
             # print(xt)
             pred_mask = model(xt)
+            raw = scipy.misc.imresize(F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:],(Da, Db))
+            raw = (raw/raw.max()*255).astype(np.uint8)
             pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=800, connectivity=2).astype(np.uint8)
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
-            pred_np = mph.remove_small_holes(pred_np, min_size=120, connectivity=2)
-            # print(np.shape(pred_np))
+            pred_np = mph.remove_small_holes(pred_np, min_size=400, connectivity=2)
+            local_maxi = peak_local_max(raw, indices=False, min_distance=40, labels=pred_np)
+            markers = ndi.label(local_maxi)[0]
+            pred_np = mph.watershed(pred_np, markers, connectivity=1, watershed_line=True, mask=pred_np)
+            pred_np = (pred_np > 0)
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
