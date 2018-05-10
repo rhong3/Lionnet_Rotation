@@ -31,12 +31,13 @@ USE_CUDA = 1
 def dataloader(handles, mode = 'train'):
     # If pickle exists, load it
     try:
-        with open('../inputs/mirror_roll/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/pickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         images = {}
         images['Image'] = []
         images['Label'] = []
+        images['Gap'] = []
         images['ID'] = []
         images['Dim'] = []
         # For each image
@@ -84,7 +85,9 @@ def dataloader(handles, mode = 'train'):
 
             if mode != 'test':
                 la_aug = []
+                gap_aug = []
                 la = imread(row['Label'])
+                gap = imread(row['Gap'])
                 # Augment for label
                 if mode == 'train':
                     laa = np.rot90(la)
@@ -92,8 +95,15 @@ def dataloader(handles, mode = 'train'):
                     lac = np.rot90(lab)
                     lad = np.fliplr(la)
                     lae = np.flipud(la)
+                    gapa = np.rot90(gap)
+                    gapb = np.rot90(gapa)
+                    gapc = np.rot90(gapb)
+                    gapd = np.fliplr(gap)
+                    gape = np.flipud(gap)
                 la = np.reshape(la, [1, la.shape[0], la.shape[1]])
                 la_aug.append(la)
+                gap = np.reshape(gap, [1, gap.shape[0], gap.shape[1]])
+                gap_aug.append(gap)
                 if mode == 'train':
                     laa = np.reshape(laa, [1, laa.shape[0], laa.shape[1]])
                     lab = np.reshape(lab, [1, lab.shape[0], lab.shape[1]])
@@ -105,15 +115,26 @@ def dataloader(handles, mode = 'train'):
                     la_aug.append(lac)
                     la_aug.append(lad)
                     la_aug.append(lae)
+                    gapa = np.reshape(gapa, [1, gapa.shape[0], gapa.shape[1]])
+                    gapb = np.reshape(gapb, [1, gapb.shape[0], gapb.shape[1]])
+                    gapc = np.reshape(gapc, [1, gapc.shape[0], gapc.shape[1]])
+                    gapd = np.reshape(gapd, [1, gapd.shape[0], gapd.shape[1]])
+                    gape = np.reshape(gape, [1, gape.shape[0], gape.shape[1]])
+                    gap_aug.append(gapa)
+                    gap_aug.append(gapb)
+                    gap_aug.append(gapc)
+                    gap_aug.append(gapd)
+                    gap_aug.append(gape)
                 images['Label'].append(np.array(la_aug))
+                images['Gap'].append(np.array(gap_aug))
             # For test set, save dimension for post processing
             elif mode == 'test':
                 images['Dim'].append([(row['Width'], row['Height'])])
             images['ID'].append(row['ID'])
 
-        with open("../inputs/mirror_roll/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/pickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/mirror_roll/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/pickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -332,25 +353,27 @@ def train(bs, sample, vasample, ep, ilr):
             # read in a batch
             trim = sample['Image'][rows[0]]
             trla = sample['Label'][rows[0]]
+            trga = sample['Gap'][rows[0]]
             # read in augmented images
             for iit in range(6):
                 trimm = trim[iit:iit + 1, :, :, :]
                 trlaa = trla[iit:iit + 1, :, :, :]
+                trgaa = trga[iit:iit + 1, :, :, :]
                 # Calculate label positive and negative ratio
                 label_ratio = (trlaa>0).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
+                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1)+trgaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
+                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1)+trgaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]) * 255
+                    add_weight = (np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]) + trgaa[0,0,:,:]/255)/2 * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # Cuda and tensor inputs and label
                 x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
@@ -372,25 +395,27 @@ def train(bs, sample, vasample, ep, ilr):
         for itr in range(rows_val):
             vaim = vasample['Image'][itr]
             vala = vasample['Label'][itr]
+            vaga = vasample['Gap'][itr]
             for iit in range(1):
                 # Load one batch
                 vaimm = vaim[iit:iit + 1, :, :, :]
                 valaa = vala[iit:iit + 1, :, :, :]
+                vagaa = vaga[iit:iit + 1, :, :, :]
                 # Calculate label positive and negative ratio
                 label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
+                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1) + vagaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
+                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1) + vagaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = np.ones([1,1,valaa.shape[2], valaa.shape[3]]) * 255
+                    add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]])+vagaa[0,0,:,:]/255)/2 * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # cuda and tensor sample
                 xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
@@ -431,7 +456,7 @@ def train(bs, sample, vasample, ep, ilr):
                 lr_dec = lr_dec / 10
         # if no change or increase in loss for consecutive 15 epochs, save validation predictions and stop training
         if epoch > 15:
-            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]):
+            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]) or epoch == ep:
                 for itr in range(rows_val):
                     vaim = vasample['Image'][itr]
                     for iit in range(1):
@@ -485,9 +510,9 @@ def test(tesample, model, group):
 
 # Read in files containing paths to training, validation, and testing images
 tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
-                       usecols=['Image', 'Label', 'Width', 'Height', 'ID'])
-va = pd.read_csv('../inputs/stage_1_test/vsamples.csv', header=0,
-                       usecols=['Image', 'Label', 'Width', 'Height', 'ID'])
+                       usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
+va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
+                       usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
 te = pd.read_csv('../inputs/stage_2_test/samples.csv', header=0, usecols=['Image', 'ID', 'Width', 'Height'])
 # Load in images
 trsample = dataloader(tr, 'train')

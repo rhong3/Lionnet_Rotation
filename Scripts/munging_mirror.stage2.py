@@ -20,7 +20,7 @@ def rescale_im(directory):
     dirs = os.listdir(directory)
     size_summary_raw = pd.read_csv(directory+'/summary.csv')
     size_summary = size_summary_raw.iloc[:,1:3]
-    min_size = size_summary.apply( max, axis=1 ).min()
+    min_size = size_summary.apply(max, axis=1).min()
     min_unit = 2**np.ceil(np.log2(min_size))
     for imid in dirs:
         if len(imid)<np.max([len(i) for i in dirs]):
