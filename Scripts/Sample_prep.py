@@ -15,7 +15,7 @@ ROOTT = dir_path
 # ROOTT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOTT
 ROOTT_IMAGEPAD_PATTERN = "%s/{}/images/{}_pad.png" % ROOTT
 ROOTT_GAP_PATTERN = "%s/{}/label/Gap_pad.png" % ROOTT
-ROOTT_LABELPAD_PATTERN = "%s/{}/label/Combined_pad.png" % ROOTT
+ROOTT_LABELPAD_PATTERN = "%s/{}/label/ER_Combined_pad.png" % ROOTT
 
 
 def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN, root_GAP_PATTERN):
@@ -62,4 +62,4 @@ def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN,
 
 test = pd.read_csv(ROOTT+'/summary.csv', header = 0)
 tesample = read_lite(test, 'train', ROOTT, ROOTT_IMAGEPAD_PATTERN, ROOTT_LABELPAD_PATTERN, ROOTT_GAP_PATTERN)
-tesample.to_csv(ROOTT+'/samples.csv', index=False, header=True)
+tesample.to_csv(ROOTT+'/ersamples.csv', index=False, header=True)

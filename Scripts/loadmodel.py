@@ -210,7 +210,7 @@ def test(tesample, model):
             pred_np = mph.remove_small_holes(pred_np, min_size=400, connectivity=2)
             local_maxi = peak_local_max(raw, indices=False, min_distance=40, labels=pred_np)
             markers = ndi.label(local_maxi)[0]
-            pred_np = mph.watershed(pred_np, markers, connectivity=1, watershed_line=True, mask=pred_np)
+            pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
             pred_np = (pred_np > 0)
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])

@@ -14,6 +14,11 @@ import sys
 import os
 import pickle
 import time
+import skimage.morphology as mph
+from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
+                                 denoise_wavelet, estimate_sigma)
+from scipy import ndimage as ndi
+from skimage.feature import peak_local_max
 
 # Type in output folder, epoch number, and initial learning rate
 output = sys.argv[1]
@@ -40,9 +45,14 @@ def dataloader(handles, mode = 'train'):
         images['Gap'] = []
         images['ID'] = []
         images['Dim'] = []
+        noiselist = []
         # For each image
         for idx, row in handles.iterrows():
             im = imread(row['Image'])
+            sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
+            noiselist.append(sigma_est)
+            # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
+            im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
             # Normalization
             im = im / im.max() * 255
             im_aug = []
@@ -131,6 +141,13 @@ def dataloader(handles, mode = 'train'):
             elif mode == 'test':
                 images['Dim'].append([(row['Width'], row['Height'])])
             images['ID'].append(row['ID'])
+        noisemean = np.mean(noiselist)
+        print(mode)
+        print(' noise stdiv_mean:')
+        print(noisemean)
+        plt.plot(noiselist)
+        plt.title(mode+' noise stdiv distribution')
+        plt.savefig('../inputs/pickles/'+mode+'_noise.png')
 
         with open("../inputs/pickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
@@ -443,20 +460,20 @@ def train(bs, sample, vasample, ep, ilr):
         for param_group in opt.param_groups:
             param_group['lr'] = lr
         # Save model every 10 epoch
-        if (epoch + 1) % 10 == 0:
+        if vlossa == np.min(vlosslists):
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
                 'optimizer': opt.state_dict(),
             }
-            torch.save(checkpoint, '../' + output + '/unet-{}'.format(epoch + 1))
+            torch.save(checkpoint, '../' + output + '/unet')
         # if no change or increase in loss for consecutive 6 epochs, decrease learning rate by 10 folds
         if epoch > 6:
             if losscp(losslists[-5:]) or losscp(vlosslists[-5:]):
                 lr_dec = lr_dec / 10
         # if no change or increase in loss for consecutive 15 epochs, save validation predictions and stop training
         if epoch > 15:
-            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]) or epoch == ep:
+            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]) or epoch+1 == ep:
                 for itr in range(rows_val):
                     vaim = vasample['Image'][itr]
                     for iit in range(1):
@@ -475,7 +492,6 @@ def train(bs, sample, vasample, ep, ilr):
     plt.title('Train & Validation Loss')
     plt.legend(['Train', 'Validation'], loc='upper right')
     plt.savefig('../' + output + '/loss.png')
-    return model
 
 # method for test
 def test(tesample, model, group):
@@ -491,8 +507,16 @@ def test(tesample, model, group):
         xt = Cuda(Variable(torch.from_numpy(teim).type(torch.FloatTensor)))
         # prediciton
         pred_mask = model(xt)
+        pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
+        raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
         pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
+        pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
+        local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
+        markers = ndi.label(local_maxi)[0]
+        pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
+        pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         # save predicted mask
@@ -520,8 +544,11 @@ vasample = dataloader(va, 'val')
 tebsample = dataloader(te, 'test')
 
 # training
-model = train(1, trsample, vasample, int(eps), float(LR))
+train(1, trsample, vasample, int(eps), float(LR))
+modelX = Cuda(UNet())
+a = torch.load('../' + output + '/unet')
+modelX.load_state_dict(a['state_dict'])
 # test set prediction
-tebsub = test(tebsample, model, 'stage_2_test')
+tebsub = test(tebsample, modelX, 'stage_2_test')
 # save vectorize masks as CSV
 tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
