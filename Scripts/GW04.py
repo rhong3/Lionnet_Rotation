@@ -36,7 +36,7 @@ USE_CUDA = 1
 def dataloader(handles, mode = 'train'):
     # If pickle exists, load it
     try:
-        with open('../inputs/pickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         images = {}
@@ -145,13 +145,14 @@ def dataloader(handles, mode = 'train'):
         print(mode)
         print(' noise stdiv_mean:')
         print(noisemean)
+        noiselist = np.sort(noiselist)
         plt.plot(noiselist)
         plt.title(mode+' noise stdiv distribution')
-        plt.savefig('../inputs/pickles/'+mode+'_noise.png')
+        plt.savefig('../inputs/erpickles/'+mode+'_noise.png')
 
-        with open("../inputs/pickles/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/erpickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/pickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -481,6 +482,9 @@ def train(bs, sample, vasample, ep, ilr):
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
                         pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8) * 255
+                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
+                            np.uint8)
+                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
                         imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
@@ -507,16 +511,17 @@ def test(tesample, model, group):
         xt = Cuda(Variable(torch.from_numpy(teim).type(torch.FloatTensor)))
         # prediciton
         pred_mask = model(xt)
-        pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
-        raw = (pdm / pdm.max() * 255).astype(np.uint8)
+        # pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
+        # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
         pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
-        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
-        pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
-        local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
-        markers = ndi.label(local_maxi)[0]
-        pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
-        pred_np = (pred_np > 0)
+        pred_np = pred_np[0,0,:,:]
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
+        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
+        # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
+        # markers = ndi.label(local_maxi)[0]
+        # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
+        # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         # save predicted mask
@@ -533,9 +538,9 @@ def test(tesample, model, group):
     return sub
 
 # Read in files containing paths to training, validation, and testing images
-tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
+tr = pd.read_csv('../inputs/stage_1_train/ersamples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
-va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
+va = pd.read_csv('../inputs/stage_1_test/ersamples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
 te = pd.read_csv('../inputs/stage_2_test/samples.csv', header=0, usecols=['Image', 'ID', 'Width', 'Height'])
 # Load in images
