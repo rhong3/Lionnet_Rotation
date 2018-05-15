@@ -204,10 +204,10 @@ def test(tesample, model):
             pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
-            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=800, connectivity=2).astype(np.uint8)
+            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
-            pred_np = mph.remove_small_holes(pred_np, min_size=400, connectivity=2)
+            pred_np = mph.remove_small_holes(pred_np, min_size=600, connectivity=2)
             # local_maxi = peak_local_max(raw, indices=False, min_distance=40, labels=pred_np)
             # markers = ndi.label(local_maxi)[0]
             # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
