@@ -199,8 +199,8 @@ def test(tesample, model):
             xt = Cuda(Variable(torch.from_numpy(teim[itt:itt+1, :, :, :]).type(torch.FloatTensor)))
             # print(xt)
             pred_mask = model(xt)
-            raw = scipy.misc.imresize(F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:],(Da, Db))
-            raw = (raw/raw.max()*255).astype(np.uint8)
+            # raw = scipy.misc.imresize(F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:],(Da, Db))
+            # raw = (raw/raw.max()*255).astype(np.uint8)
             pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
@@ -208,10 +208,10 @@ def test(tesample, model):
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
             pred_np = mph.remove_small_holes(pred_np, min_size=400, connectivity=2)
-            local_maxi = peak_local_max(raw, indices=False, min_distance=40, labels=pred_np)
-            markers = ndi.label(local_maxi)[0]
-            pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
-            pred_np = (pred_np > 0)
+            # local_maxi = peak_local_max(raw, indices=False, min_distance=40, labels=pred_np)
+            # markers = ndi.label(local_maxi)[0]
+            # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
+            # pred_np = (pred_np > 0)
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
