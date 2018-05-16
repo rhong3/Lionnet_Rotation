@@ -487,6 +487,8 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
+                        if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
+                            pred_np[0, 0, 1, 1] = pred_np[0, 0, 1, 1] + 1
                         imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
                 break
 
@@ -525,6 +527,8 @@ def test(tesample, model, group):
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         # save predicted mask
+        if np.max(pred_np) == np.min(pred_np):
+            pred_np[1, 1] = pred_np[1, 1] + 1
         imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
         # vectorize mask
         rle = list(prob_to_rles(pred_np))
