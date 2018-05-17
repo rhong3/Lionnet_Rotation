@@ -554,6 +554,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
                         if not os.path.exists('../' + output + '/'+ mode +'validation/'):
                             os.makedirs('../' + output + '/'+ mode +'validation/')
+                        if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
+                            pred_np[0, 0, 1, 1] = pred_np[0, 0, 1, 1] + 1
                         imsave('../' + output + '/'+ mode +'validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
                 break
 
