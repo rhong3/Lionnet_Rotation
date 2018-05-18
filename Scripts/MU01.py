@@ -400,7 +400,7 @@ def train(bs, sample, vasample, ep, ilr):
                 # Prediction
                 pred_mask = model(x)
                 # BCE and dice loss
-                loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
+                loss = loss_fn(pred_mask, y).cpu() #+ dice_loss(F.sigmoid(pred_mask), y)
                 losslist.append(loss.data.numpy()[0])
                 loss.backward()
                 # ppv metric
@@ -442,7 +442,7 @@ def train(bs, sample, vasample, ep, ilr):
                 # prediction
                 pred_maskv = model(xv)
                 # dice and BCE loss
-                vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
+                vloss = loss_fn(pred_maskv, yv).cpu() #+ dice_loss(F.sigmoid(pred_maskv), yv)
                 vlosslist.append(vloss.data.numpy()[0])
                 # ppv metric
                 va_metric = metric(F.sigmoid(pred_maskv), yv)
