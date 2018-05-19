@@ -498,7 +498,7 @@ def train(bs, sample, vasample, ep, ilr):
                             os.makedirs('../' + output + '/validation/')
                         if np.max(pred_np) == np.min(pred_np):
                             pred_np[1, 1] = pred_np[1, 1] + 1
-                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
+                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np)
                 break
 
     # Loss figures

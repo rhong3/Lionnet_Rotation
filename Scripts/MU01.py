@@ -485,12 +485,19 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
                         pred_np = pred_np.round().astype(np.uint8)
                         pred_np = (pred_np/np.max(pred_np)*255).astype(np.uint8)
+                        ppp = pred_np
                         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                             np.uint8)
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
-                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
+                        if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
+                            print('BOOM!')
+                            print(vasample['ID'][itr])
+                            imsave('../' + output + '/validation/' + vasample['ID'][itr] + '.png',
+                                   ppp[0, 0, :, :])
+                        else:
+                            imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
                 break
 
     # Loss figures
@@ -521,6 +528,7 @@ def test(tesample, model, group):
         pred_np = pred_np.round().astype(np.uint8)
         pred_np = (pred_np / np.max(pred_np) * 255).astype(np.uint8)
         pred_np = pred_np[0,0,:,:]
+        ppp = pred_np
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
@@ -529,9 +537,14 @@ def test(tesample, model, group):
         # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
-        # save predicted mask
-        imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
-    #     # vectorize mask
+        if np.max(pred_np[0, 0, :, :]) == np.min(pred_np[0, 0, :, :]):
+            print('BOOM!')
+            print(teid)
+            imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                   ((ppp / ppp.max()) * 255).astype(np.uint8))
+        else:
+            # save predicted mask
+            imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
     #     rle = list(prob_to_rles(pred_np))
     #     rles.extend(rle)
     #     test_ids.extend([teid] * len(rle))
