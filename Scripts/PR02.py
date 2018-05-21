@@ -489,7 +489,7 @@ def train(bs, sample, vasample, ep, ilr):
                         markers = np.zeros(pred_np.shape, dtype=np.uint8)
                         markers[ppp < 0.3] = 1
                         markers[ppp > 0.8] = 2
-                        pred_np = RW(pred_np, markers, beta=100)
+                        pred_np = RW(ppp, markers, beta=100)*255
                         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                             np.uint8)
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2).astype(
@@ -497,6 +497,7 @@ def train(bs, sample, vasample, ep, ilr):
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
                         if np.max(pred_np) == np.min(pred_np):
+                            print('boom!')
                             pred_np[1, 1] = pred_np[1, 1] + 1
                         imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np)
                 break
@@ -530,7 +531,7 @@ def test(tesample, model, group):
         markers = np.zeros(pred_np.shape, dtype=np.uint8)
         markers[pdm < 0.3] = 1
         markers[pdm > 0.8] = 2
-        pred_np = RW(pred_np, markers, beta=100)
+        pred_np = RW(pdm, markers, beta=100) * 255
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
@@ -541,6 +542,7 @@ def test(tesample, model, group):
         pred_np = back_scale(pred_np, tedim)
         # save predicted mask
         if np.max(pred_np) == np.min(pred_np):
+            print('boom!')
             pred_np[1, 1] = pred_np[1, 1] + 1
         imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
         # vectorize mask

@@ -610,7 +610,7 @@ def test(tesample, model, group, mode):
         # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
-        if np.max(pred_np[0, 0, :, :]) == np.min(pred_np[0, 0, :, :]):
+        if np.max(pred_np) == np.min(pred_np):
             print('BOOM!')
             print(teid)
             imsave('../' + output + '/' + group + '/' + teid + '_' + mode + '_pred.png',

@@ -36,7 +36,7 @@ USE_CUDA = 1
 def dataloader(handles, mode = 'train'):
     # If pickle exists, load it
     try:
-        with open('../inputs/mupickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         images = {}
@@ -146,14 +146,13 @@ def dataloader(handles, mode = 'train'):
         print(' noise stdiv_mean:')
         print(noisemean)
         noiselist = np.sort(noiselist)
-        plt.figure(0)
-        plt.hist(noiselist, bins=8)
+        plt.plot(noiselist)
         plt.title(mode+' noise stdiv distribution')
-        plt.savefig('../inputs/mupickles/'+mode+'_noise.png')
+        plt.savefig('../inputs/erpickles/'+mode+'_noise.png')
 
-        with open("../inputs/mupickles/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/erpickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/mupickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -379,7 +378,7 @@ def train(bs, sample, vasample, ep, ilr):
                 trlaa = trla[iit:iit + 1, :, :, :]
                 trgaa = trga[iit:iit + 1, :, :, :]
                 # Calculate label positive and negative ratio
-                label_ratio = (trlaa>250).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>250).sum())
+                label_ratio = (trlaa>0).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
                     add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
@@ -400,7 +399,7 @@ def train(bs, sample, vasample, ep, ilr):
                 # Prediction
                 pred_mask = model(x)
                 # BCE and dice loss
-                loss = loss_fn(pred_mask, y).cpu() #+ dice_loss(F.sigmoid(pred_mask), y)
+                loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
                 losslist.append(loss.data.numpy()[0])
                 loss.backward()
                 # ppv metric
@@ -421,7 +420,7 @@ def train(bs, sample, vasample, ep, ilr):
                 valaa = vala[iit:iit + 1, :, :, :]
                 vagaa = vaga[iit:iit + 1, :, :, :]
                 # Calculate label positive and negative ratio
-                label_ratio = (valaa>250).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>250).sum())
+                label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
                     add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
@@ -442,7 +441,7 @@ def train(bs, sample, vasample, ep, ilr):
                 # prediction
                 pred_maskv = model(xv)
                 # dice and BCE loss
-                vloss = loss_fn(pred_maskv, yv).cpu() #+ dice_loss(F.sigmoid(pred_maskv), yv)
+                vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
                 vlosslist.append(vloss.data.numpy()[0])
                 # ppv metric
                 va_metric = metric(F.sigmoid(pred_maskv), yv)
@@ -482,22 +481,14 @@ def train(bs, sample, vasample, ep, ilr):
                         vaimm = vaim[iit:iit + 1, :, :, :]
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
-                        pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
-                        pred_np = pred_np.round().astype(np.uint8)
-                        pred_np = (pred_np/np.max(pred_np)*255).astype(np.uint8)
-                        ppp = pred_np
+                        pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8) * 255
                         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                             np.uint8)
-                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
+                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2).astype(
+                            np.uint8)
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
-                        if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
-                            print('BOOM!')
-                            print(vasample['ID'][itr])
-                            imsave('../' + output + '/validation/' + vasample['ID'][itr] + '.png',
-                                   ppp[0, 0, :, :])
-                        else:
-                            imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
+                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
                 break
 
     # Loss figures
@@ -524,11 +515,8 @@ def test(tesample, model, group):
         # pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
         # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
-        pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
-        pred_np = pred_np.round().astype(np.uint8)
-        pred_np = (pred_np / np.max(pred_np) * 255).astype(np.uint8)
+        pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
         pred_np = pred_np[0,0,:,:]
-        ppp = pred_np
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
@@ -537,28 +525,23 @@ def test(tesample, model, group):
         # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
-        if np.max(pred_np) == np.min(pred_np):
-            print('BOOM!')
-            print(teid)
-            imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
-                   ((ppp / ppp.max()) * 255).astype(np.uint8))
-        else:
-            # save predicted mask
-            imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
-    #     rle = list(prob_to_rles(pred_np))
-    #     rles.extend(rle)
-    #     test_ids.extend([teid] * len(rle))
-    # # save vectorize masks as CSV
-    # sub = pd.DataFrame()
-    # sub['ImageId'] = test_ids
-    # sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
+        # save predicted mask
+        imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
+        # vectorize mask
+        rle = list(prob_to_rles(pred_np))
+        rles.extend(rle)
+        test_ids.extend([teid] * len(rle))
+    # save vectorize masks as CSV
+    sub = pd.DataFrame()
+    sub['ImageId'] = test_ids
+    sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
 
-    # return sub
+    return sub
 
 # Read in files containing paths to training, validation, and testing images
-tr = pd.read_csv('../inputs/stage_1_train/musamples.csv', header=0,
+tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
-va = pd.read_csv('../inputs/stage_1_test/musamples.csv', header=0,
+va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
 te = pd.read_csv('../inputs/stage_2_test/samples.csv', header=0, usecols=['Image', 'ID', 'Width', 'Height'])
 # Load in images
@@ -572,7 +555,6 @@ modelX = Cuda(UNet())
 a = torch.load('../' + output + '/unet')
 modelX.load_state_dict(a['state_dict'])
 # test set prediction
-# tebsub = test(tebsample, modelX, 'stage_2_test')
-test(tebsample, modelX, 'stage_2_test')
+tebsub = test(tebsample, modelX, 'stage_2_test')
 # save vectorize masks as CSV
-# tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
+tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)

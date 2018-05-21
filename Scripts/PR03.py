@@ -487,7 +487,7 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = pred_np[0, 0, :, :]
                         markers = np.zeros(pred_np.shape, dtype=np.uint8)
                         markers[ppp > 0.75] = 1
-                        markers = ndi.label(markers)
+                        markers = ndi.label(markers)[0]
                         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                             np.uint8)
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
@@ -533,7 +533,7 @@ def test(tesample, model, group):
         # markers = ndi.label(local_maxi)[0]
         markers = np.zeros(pred_np.shape, dtype=np.uint8)
         markers[pdm > 0.75] = 1
-        markers = ndi.label(markers)
+        markers = ndi.label(markers)[0]
         pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
         # pred_np = (pred_np > 0)
         # cut back to original image size
