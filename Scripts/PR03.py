@@ -483,7 +483,7 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_maskv = model(xv)
                         ppp = F.sigmoid(pred_maskv).cpu().data.numpy().astype(np.uint8)
                         ppp = ppp[0, 0, :, :]
-                        pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8) * 255
+                        pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8)
                         pred_np = pred_np[0, 0, :, :]
                         markers = np.zeros(pred_np.shape, dtype=np.uint8)
                         markers[ppp > 0.75] = 1
@@ -492,7 +492,7 @@ def train(bs, sample, vasample, ep, ilr):
                             np.uint8)
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
                         pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
-                        pred_np = (pred_np > 0)
+                        pred_np = (pred_np > 0)*255
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
                         if np.max(pred_np) == np.min(pred_np):
@@ -534,7 +534,7 @@ def test(tesample, model, group):
         markers = np.zeros(pred_np.shape, dtype=np.uint8)
         markers[pdm > 0.75] = 1
         markers = ndi.label(markers)[0]
-        pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
+        pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)*255
         # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
