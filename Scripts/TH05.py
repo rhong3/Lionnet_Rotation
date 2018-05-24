@@ -36,7 +36,7 @@ USE_CUDA = 1
 def dataloader(handles, mode = 'train'):
     # If pickle exists, load it
     try:
-        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/pickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         images = {}
@@ -148,11 +148,11 @@ def dataloader(handles, mode = 'train'):
         noiselist = np.sort(noiselist)
         plt.plot(noiselist)
         plt.title(mode+' noise stdiv distribution')
-        plt.savefig('../inputs/erpickles/'+mode+'_noise.png')
+        plt.savefig('../inputs/pickles/'+mode+'_noise.png')
 
-        with open("../inputs/erpickles/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/pickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/pickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -481,25 +481,14 @@ def train(bs, sample, vasample, ep, ilr):
                         vaimm = vaim[iit:iit + 1, :, :, :]
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
-                        ppp = F.sigmoid(pred_maskv).cpu().data.numpy().astype(np.uint8)
-                        ppp = ppp[0, 0, :, :]
-                        pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8)
-                        pred_np = pred_np[0, 0, :, :]
-                        markers = np.zeros(pred_np.shape, dtype=np.uint8)
-                        markers[ppp > 0.7] = 1
-                        print(np.mean(markers))
-                        local_maxi = peak_local_max(markers, indices=False, footprint=np.ones((10, 10)),
-                                                    labels=pred_np)
-                        markers = ndi.label(local_maxi)[0]
-                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
+                        pred_np = (F.sigmoid(pred_maskv) > 0.6).cpu().data.numpy().astype(np.uint8)
+                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15, connectivity=2).astype(
                             np.uint8)
-                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
-                        pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
+                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2).astype(
+                            np.uint8)*255
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
-                        if np.max(pred_np) == np.min(pred_np):
-                            pred_np[1, 1] = pred_np[1, 1] + 1
-                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np*255)
+                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
                 break
 
     # Loss figures
@@ -523,29 +512,20 @@ def test(tesample, model, group):
         xt = Cuda(Variable(torch.from_numpy(teim).type(torch.FloatTensor)))
         # prediciton
         pred_mask = model(xt)
-        pdm = F.sigmoid(pred_mask).cpu().data.numpy().astype(np.uint8)
-        pdm = pdm[0,0,:,:]
+        # pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
         # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
-        pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
+        pred_np = (F.sigmoid(pred_mask) > 0.6).cpu().data.numpy().astype(np.uint8)
         pred_np = pred_np[0,0,:,:]
-        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15, connectivity=2).astype(np.uint8)
         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
         # markers = ndi.label(local_maxi)[0]
-        markers = np.zeros(pred_np.shape, dtype=np.uint8)
-        markers[pdm > 0.7] = 1
-        print(np.mean(markers))
-        local_maxi = peak_local_max(markers, indices=False, footprint=np.ones((10, 10)),
-                                    labels=pred_np)
-        markers = ndi.label(local_maxi)[0]
-        pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)*255
+        # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
         # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         # save predicted mask
-        if np.max(pred_np) == np.min(pred_np):
-            pred_np[1, 1] = pred_np[1, 1] + 1
         imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
         # vectorize mask
         rle = list(prob_to_rles(pred_np))
