@@ -546,20 +546,20 @@ def train(bs, sample, vasample, ep, ilr, mode):
                         vaimm = vaim[iit:iit + 1, :, :, :]
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
-                        pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
-                        pred_np = pred_np.round().astype(np.uint8)
-                        pred_np = (pred_np/np.max(pred_np)*255).astype(np.uint8)
+                        pred_np = (F.sigmoid(pred_maskv)).cpu().data.numpy()
                         ppp = pred_np
+                        pred_np = pred_np.round().astype(np.uint8)
                         if not os.path.exists('../' + output + '/'+ mode +'validation/'):
                             os.makedirs('../' + output + '/'+ mode +'validation/')
                         if mode == 'nuke':
-                            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40,
+                            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30,
                                                                connectivity=2).astype(np.uint8)
-                            pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
+                            pred_np = mph.remove_small_holes(pred_np, min_size=30, connectivity=2)*255
                         elif mode == 'gap':
-                            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20,
+                            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15,
                                                                connectivity=2).astype(np.uint8)
-                            pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
+                            selem = mph.disk(1)
+                            pred_np = mph.erosion(pred_np, selem)*255
                         if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
                             print('BOOM!')
                             print(vasample['ID'][itr])
@@ -590,24 +590,19 @@ def test(tesample, model, group, mode):
         xt = Cuda(Variable(torch.from_numpy(teim).type(torch.FloatTensor)))
         # prediciton
         pred_mask = model(xt)
-        # pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
-        # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
-        pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
+        pred_np = (F.sigmoid(pred_mask)).cpu().data.numpy()
+        ppp = pred_np[0,0,:,:]
         pred_np = pred_np.round().astype(np.uint8)
-        pred_np = (pred_np / np.max(pred_np) * 255).astype(np.uint8)
         pred_np = pred_np[0,0,:,:]
         ppp = pred_np
         if mode == 'nuke':
-            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
-            pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
+            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
+            pred_np = mph.remove_small_holes(pred_np, min_size=30, connectivity=2)*255
         elif mode == 'gap':
-            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
-            pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
-        # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
-        # markers = ndi.label(local_maxi)[0]
-        # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
-        # pred_np = (pred_np > 0)
+            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15, connectivity=2).astype(np.uint8)
+            selem = mph.disk(1)
+            pred_np = mph.erosion(pred_np, selem)*255
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         if np.max(pred_np) == np.min(pred_np):

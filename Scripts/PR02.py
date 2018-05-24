@@ -488,8 +488,9 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = pred_np[0, 0, :, :]
                         markers = np.zeros(pred_np.shape, dtype=np.uint8)
                         markers[ppp < 0.3] = 1
-                        markers[ppp > 0.8] = 2
-                        pred_np = RW(ppp, markers, beta=100)
+                        markers[ppp > 0.75] = 2
+                        print(np.mean(markers))
+                        pred_np = RW(ppp, markers, beta=10)
                         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                             np.uint8)
                         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2).astype(
@@ -530,8 +531,9 @@ def test(tesample, model, group):
         pred_np = pred_np[0,0,:,:]
         markers = np.zeros(pred_np.shape, dtype=np.uint8)
         markers[pdm < 0.3] = 1
-        markers[pdm > 0.8] = 2
-        pred_np = RW(pdm, markers, beta=100)
+        markers[pdm > 0.75] = 2
+        print(np.mean(markers))
+        pred_np = RW(pdm, markers, beta=10)
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
         pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2) * 255
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
