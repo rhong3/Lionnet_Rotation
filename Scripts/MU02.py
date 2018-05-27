@@ -559,14 +559,14 @@ def train(bs, sample, vasample, ep, ilr, mode):
                             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15,
                                                                connectivity=2).astype(np.uint8)
                             selem = mph.disk(1)
-                            pred_np = mph.erosion(pred_np, selem)*255
+                            pred_np = mph.erosion(pred_np, selem)
                         if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
                             print('BOOM!')
                             print(vasample['ID'][itr])
                             imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
-                                   ppp[0, 0, :, :])
+                                   ppp[0, 0, :, :]*255)
                         else:
-                            imsave('../' + output + '/'+ mode +'validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
+                            imsave('../' + output + '/'+ mode +'validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:]*255)
                 break
 
     # Loss figures
@@ -598,11 +598,11 @@ def test(tesample, model, group, mode):
         ppp = pred_np
         if mode == 'nuke':
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
-            pred_np = mph.remove_small_holes(pred_np, min_size=30, connectivity=2)*255
+            pred_np = mph.remove_small_holes(pred_np, min_size=30, connectivity=2)
         elif mode == 'gap':
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15, connectivity=2).astype(np.uint8)
             selem = mph.disk(1)
-            pred_np = mph.erosion(pred_np, selem)*255
+            pred_np = mph.erosion(pred_np, selem)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         if np.max(pred_np) == np.min(pred_np):
