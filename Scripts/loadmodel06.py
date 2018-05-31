@@ -195,6 +195,7 @@ def test(tesample, model):
                     qq[j,k,:,:] = scipy.misc.imresize(teim[j,k,:,:], (1024, 1024))
             teim = qq
         ott = np.empty((teim.shape[0], Da, Db))
+        stk = np.empty((Da, Db))
         for itt in range(teim.shape[0]):
             xt = Cuda(Variable(torch.from_numpy(teim[itt:itt+1, :, :, :]).type(torch.FloatTensor)))
             # print(xt)
@@ -204,7 +205,9 @@ def test(tesample, model):
             pred_np = (F.sigmoid(pred_mask) > 0.6).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
+
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
+
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
             pred_np = mph.remove_small_holes(pred_np, min_size=600, connectivity=2)
@@ -212,9 +215,11 @@ def test(tesample, model):
             # markers = ndi.label(local_maxi)[0]
             # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
             # pred_np = (pred_np > 0)
+            stk = stk + pred_np
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
+        io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 
 
 sample = dataloader('test')
