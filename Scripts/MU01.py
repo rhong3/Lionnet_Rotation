@@ -421,7 +421,7 @@ def train(bs, sample, vasample, ep, ilr):
                 valaa = vala[iit:iit + 1, :, :, :]
                 vagaa = vaga[iit:iit + 1, :, :, :]
                 # Calculate label positive and negative ratio
-                label_ratio = (valaa>250).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>250).sum())
+                label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
                     add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
@@ -483,8 +483,11 @@ def train(bs, sample, vasample, ep, ilr):
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
                         pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
-                        ppp = pred_np[0,0,:,:].astype(np.uint8)
-                        pred_np = pred_np[0,0,:,:].round().astype(np.uint8)
+                        ppp = pred_np[0,0,:,:]
+                        pred_np = pred_np[0,0,:,:]
+                        pred_npa = (pred_np>1.25).astype(np.uint8)
+                        pred_npb = (pred_np>0.75).astype(np.uint8)
+                        pred_np = pred_npa + pred_npb
                         # pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                         #     np.uint8)
                         # pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
@@ -525,8 +528,11 @@ def test(tesample, model, group):
         # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
         pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
-        ppp = pred_np[0,0,:,:].astype(np.uint8)
-        pred_np = pred_np[0,0,:,:].round().astype(np.uint8)
+        ppp = pred_np[0,0,:,:]
+        pred_np = pred_np[0, 0, :, :]
+        pred_npa = (pred_np > 1.25).astype(np.uint8)
+        pred_npb = (pred_np > 0.75).astype(np.uint8)
+        pred_np = pred_npa + pred_npb
         # pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
         # pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
