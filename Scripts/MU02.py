@@ -580,8 +580,6 @@ def train(bs, sample, vasample, ep, ilr, mode):
 
 # method for test
 def test(tesample, model, group, mode):
-    test_ids = []
-    rles = []
     if not os.path.exists('../' + output + '/' + group):
         os.makedirs('../' + output + '/' + group)
     for itr in range(len(tesample['ID'])):
@@ -616,16 +614,44 @@ def test(tesample, model, group, mode):
             # save predicted mask
             imsave('../' + output + '/' + group + '/' + teid + '_' + mode + '_pred.png',
                    ((pred_np/pred_np.max())*255).astype(np.uint8))
-    #     # vectorize mask
-    #     rle = list(prob_to_rles(pred_np))
-    #     rles.extend(rle)
-    #     test_ids.extend([teid] * len(rle))
-    # # save vectorize masks as CSV
-    # sub = pd.DataFrame()
-    # sub['ImageId'] = test_ids
-    # sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
 
-    # return sub
+
+def vatest(vasample):
+    if not os.path.exists('../' + output + '/validation'):
+        os.makedirs('../' + output + '/validation')
+    for itr in range(len(vasample['ID'])):
+        vaid = vasample['ID'][itr]
+        a = imread('../' + output + '/nukevalidation/' + vaid + '.png')
+        b = imread('../' + output + '/gapvalidation/' + vaid + '.png')
+        out = np.clip(a - b, 0, None)
+        imsave('../' + output + '/validation/' + vaid + '_pred.png',
+               ((out / out.max()) * 255).astype(np.uint8))
+
+
+def cbtest(tesample, group):
+    test_ids = []
+    rles = []
+    if not os.path.exists('../' + output + '/final_' + group):
+        os.makedirs('../' + output + '/final_' + group)
+    for itr in range(len(tesample['ID'])):
+        teid = tesample['ID'][itr]
+        a = imread('../' + output + '/' + group + '/' + teid + '_nuke_pred.png')
+        b = imread('../' + output + '/' + group + '/' + teid + '_gap_pred.png')
+        out = np.clip(a - b, 0, None)
+        out = ((out / out.max()) * 255).astype(np.uint8)
+        imsave('../' + output + '/final' + group + '/' + teid + '_pred.png',
+               ((out / out.max()) * 255).astype(np.uint8))
+        # vectorize mask
+        rle = list(prob_to_rles(out))
+        rles.extend(rle)
+        test_ids.extend([teid] * len(rle))
+    # save vectorize masks as CSV
+    sub = pd.DataFrame()
+    sub['ImageId'] = test_ids
+    sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
+
+    return sub
+
 
 # Read in files containing paths to training, validation, and testing images
 tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
@@ -641,6 +667,7 @@ tebsample = dataloader(te, 'test')
 # training
 train(1, trsample, vasample, int(eps), float(LR), 'nuke')
 train(1, trsample, vasample, int(eps), float(LR), 'gap')
+vatest(vasample)
 modelX = Cuda(UNet())
 a = torch.load('../' + output + '/nuke_unet')
 modelX.load_state_dict(a['state_dict'])
@@ -650,5 +677,7 @@ test(tebsample, modelX, 'stage_2_test', 'nuke')
 a = torch.load('../' + output + '/gap_unet')
 modelX.load_state_dict(a['state_dict'])
 test(tebsample, modelX, 'stage_2_test', 'gap')
+tebsub = cbtest(tebsample, 'stage_2_test')
 # save vectorize masks as CSV
-# tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
+tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
+
