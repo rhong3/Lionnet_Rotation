@@ -231,6 +231,7 @@ class UNet(torch.nn.Module):
         self.last_bn = torch.nn.BatchNorm2d(16)
         self.last_conv2 = torch.nn.Conv2d(16, 1, 1, padding=0)
         self.relu = torch.nn.ReLU()
+        self.softmax = torch.nn.Softmax2d()
 
     def forward(self, x):
         self.x1 = self.down_block1(x)
@@ -251,7 +252,8 @@ class UNet(torch.nn.Module):
         x = self.up_block6(self.x1, x)
         x = self.relu(self.last_bn(self.last_conv1(x)))
         x = self.last_conv2(x)
-        x = torch.nn.Softmax2d(x)
+        print(x)
+        x = self.softmax(x)
         return x
 
 
