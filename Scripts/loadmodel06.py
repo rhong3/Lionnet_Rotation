@@ -199,7 +199,7 @@ def test(tesample, model):
         for itt in range(teim.shape[0]):
             xx = teim[itt:itt+1, :, :, :]
             # num = 1 - (xx>0).sum()/(xx.shape[1]*xx.shape[2] * xx.shape[3])
-            print(num)
+            # print(num)
             xt = Cuda(Variable(torch.from_numpy(teim[itt:itt+1, :, :, :]).type(torch.FloatTensor)))
             # print(xt)
             pred_mask = model(xt)
