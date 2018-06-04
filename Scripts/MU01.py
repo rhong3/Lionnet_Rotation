@@ -314,7 +314,7 @@ def rle_encoding(x):
     return run_lengths
 
 # Vectorize predicted test images
-def prob_to_rles(x, cutoff=0.5):
+def prob_to_rles(x, cutoff=1.2):
     lab_img = label(x > cutoff)
     for i in range(1, lab_img.max() + 1):
         yield rle_encoding(lab_img == i)
@@ -488,16 +488,29 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_npa = (pred_np>1.2).astype(np.uint8)
                         pred_npb = (pred_np>0.9).astype(np.uint8)
                         pred_np = pred_npa + pred_npb
+                        pww = pred_np
                         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(
                             np.uint8)
                         pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
                         if np.max(pred_np) == np.min(pred_np):
-                            print('BOOM!')
+                            print('1st BOOM!')
                             print(vasample['ID'][itr])
-                            imsave('../' + output + '/validation/' + vasample['ID'][itr] + '.png',
-                                   ((ppp / ppp.max()) * 255).astype(np.uint8))
+                            if np.max(pww) == np.min(pww):
+                                print('2nd_BOOM!')
+                                if ppp.max() == 0 or ppp.min() == 2:
+                                    print('3rd_BOOM!')
+                                    imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
+                                           ppp.astype(np.uint8))
+                                else:
+                                    ppp = (ppp / ppp.max()) * 2
+                                    ppp = (ppp > 1.9).astype(np.uint8) * 2
+                                    imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
+                                           ((ppp / ppp.max()) * 255).astype(np.uint8))
+                            else:
+                                imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
+                                       ((pww / pww.max()) * 255).astype(np.uint8))
                         else:
                             imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
                                    ((pred_np / pred_np.max())*255).astype(np.uint8))
@@ -533,6 +546,7 @@ def test(tesample, model, group):
         pred_npa = (pred_np > 1.2).astype(np.uint8)
         pred_npb = (pred_np > 0.9).astype(np.uint8)
         pred_np = pred_npa + pred_npb
+        pww = pred_np
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
         pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
@@ -542,23 +556,39 @@ def test(tesample, model, group):
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
         ppp = back_scale(ppp, tedim)
+        pww = back_scale(pww, tedim)
         if np.max(pred_np) == np.min(pred_np):
-            print('BOOM!')
+            print('1st BOOM!')
             print(teid)
-            imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
-                   ((ppp / ppp.max()) * 255).astype(np.uint8))
+            if np.max(pww) == np.min(pww):
+                print('2nd_BOOM!')
+                if ppp.max() == 0 or ppp.min() == 2:
+                    print('3rd_BOOM!')
+                    imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                           ppp.astype(np.uint8))
+                    pred_np = ppp
+                else:
+                    ppp = (ppp / ppp.max()) * 2
+                    ppp = (ppp > 1.9).astype(np.uint8) * 2
+                    imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                           ((ppp / ppp.max()) * 255).astype(np.uint8))
+                    pred_np = ppp
+            else:
+                imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                       ((pww / pww.max()) * 255).astype(np.uint8))
+                pred_np = pww
         else:
             # save predicted mask
             imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
-    #     rle = list(prob_to_rles(pred_np))
-    #     rles.extend(rle)
-    #     test_ids.extend([teid] * len(rle))
-    # # save vectorize masks as CSV
-    # sub = pd.DataFrame()
-    # sub['ImageId'] = test_ids
-    # sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
+        rle = list(prob_to_rles(pred_np))
+        rles.extend(rle)
+        test_ids.extend([teid] * len(rle))
+    # save vectorize masks as CSV
+    sub = pd.DataFrame()
+    sub['ImageId'] = test_ids
+    sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
 
-    # return sub
+    return sub
 
 # Read in files containing paths to training, validation, and testing images
 tr = pd.read_csv('../inputs/stage_1_train/musamples.csv', header=0,
@@ -578,6 +608,6 @@ a = torch.load('../' + output + '/unet')
 modelX.load_state_dict(a['state_dict'])
 # test set prediction
 # tebsub = test(tebsample, modelX, 'stage_2_test')
-test(tebsample, modelX, 'stage_2_test')
+tebsub = test(tebsample, modelX, 'stage_2_test')
 # save vectorize masks as CSV
-# tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
+tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)

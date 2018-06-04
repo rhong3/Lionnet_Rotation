@@ -549,10 +549,10 @@ def train(bs, sample, vasample, ep, ilr, mode):
                         pred_np = (F.sigmoid(pred_maskv)).cpu().data.numpy()
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np.round().astype(np.uint8)
-                        pred_np = pred_np[0, 0, :, :]
+                        pred_np = pred_np[0,0,:,:]
                         pww = pred_np
-                        if not os.path.exists('../' + output + '/' + mode + 'validation/'):
-                            os.makedirs('../' + output + '/' + mode + 'validation/')
+                        if not os.path.exists('../' + output + '/'+ mode +'validation/'):
+                            os.makedirs('../' + output + '/'+ mode +'validation/')
                         if mode == 'nuke':
                             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30,
                                                                connectivity=2).astype(np.uint8)
@@ -580,9 +580,9 @@ def train(bs, sample, vasample, ep, ilr, mode):
                                 imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
                                        ((pww / pww.max()) * 255).astype(np.uint8))
                         else:
-                            imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
+                            imsave('../' + output + '/'+ mode +'validation/'+ vasample['ID'][itr] + '.png',
                                    ((pred_np / pred_np.max()) * 255).astype(np.uint8))
-                    break
+                break
 
     # Loss figures
     plt.plot(losslists)
@@ -681,9 +681,9 @@ def cbtest(tesample, group):
 
 
 # Read in files containing paths to training, validation, and testing images
-tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
+tr = pd.read_csv('../inputs/stage_1_train/ersamples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
-va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
+va = pd.read_csv('../inputs/stage_1_test/ersamples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
 te = pd.read_csv('../inputs/stage_2_test/samples.csv', header=0, usecols=['Image', 'ID', 'Width', 'Height'])
 # Load in images
