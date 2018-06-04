@@ -639,7 +639,7 @@ def cbtest(tesample, group):
         b = imread('../' + output + '/' + group + '/' + teid + '_gap_pred.png')
         out = np.clip(a - b, 0, None)
         out = ((out / out.max()) * 255).astype(np.uint8)
-        imsave('../' + output + '/final' + group + '/' + teid + '_pred.png',
+        imsave('../' + output + '/final_' + group + '/' + teid + '_pred.png',
                ((out / out.max()) * 255).astype(np.uint8))
         # vectorize mask
         rle = list(prob_to_rles(out))
