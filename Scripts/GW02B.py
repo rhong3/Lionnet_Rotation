@@ -36,7 +36,7 @@ USE_CUDA = 1
 def dataloader(handles, mode = 'train'):
     # If pickle exists, load it
     try:
-        with open('../inputs/mupickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         images = {}
@@ -146,14 +146,13 @@ def dataloader(handles, mode = 'train'):
         print(' noise stdiv_mean:')
         print(noisemean)
         noiselist = np.sort(noiselist)
-        plt.figure(0)
-        plt.hist(noiselist, bins=8)
+        plt.plot(noiselist)
         plt.title(mode+' noise stdiv distribution')
-        plt.savefig('../inputs/mupickles/'+mode+'_noise.png')
+        plt.savefig('../inputs/erpickles/'+mode+'_noise.png')
 
-        with open("../inputs/mupickles/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/erpickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/mupickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/erpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -314,7 +313,7 @@ def rle_encoding(x):
     return run_lengths
 
 # Vectorize predicted test images
-def prob_to_rles(x, cutoff=1.2):
+def prob_to_rles(x, cutoff=0.5):
     lab_img = label(x > cutoff)
     for i in range(1, lab_img.max() + 1):
         yield rle_encoding(lab_img == i)
@@ -327,7 +326,6 @@ def dice_loss(input, target):
     intersection = (iflat * tflat).sum()
     return 1.0 - (((2. * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth)))
 
-
 # F1 score
 def Fscore(y_pred, target):
     pred = Cuda((y_pred.view(-1) > 0.5).type(torch.FloatTensor))
@@ -338,7 +336,6 @@ def Fscore(y_pred, target):
     precision = tp / label
     F = 2 * precision * recall / (precision + recall)
     return F
-
 
 # PPV metric function
 def metric(y_pred, target):
@@ -394,20 +391,20 @@ def train(bs, sample, vasample, ep, ilr):
                 trlaa = trla[iit:iit + 1, :, :, :]
                 trgaa = trga[iit:iit + 1, :, :, :]
                 # Calculate label positive and negative ratio
-                label_ratio = (trlaa>250).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>250).sum())
+                label_ratio = (trlaa>0).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
+                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1)+10*trgaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
+                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1)+10*trgaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = (np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]))/2 * 255
+                    add_weight = (np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]) + 10*trgaa[0,0,:,:]/255)/2 * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # Cuda and tensor inputs and label
                 x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
@@ -415,7 +412,7 @@ def train(bs, sample, vasample, ep, ilr):
                 # Prediction
                 pred_mask = model(x)
                 # BCE and dice loss
-                loss = loss_fn(pred_mask, y).cpu() #+ dice_loss(F.sigmoid(pred_mask), y)
+                loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
                 losslist.append(loss.data.numpy()[0])
                 loss.backward()
                 # ppv metric
@@ -441,17 +438,17 @@ def train(bs, sample, vasample, ep, ilr):
                 label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
+                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1) + 10*vagaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
+                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1) + 10*vagaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]]))/2 * 255
+                    add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]])+10*vagaa[0,0,:,:]/255)/2 * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # cuda and tensor sample
                 xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
@@ -459,7 +456,7 @@ def train(bs, sample, vasample, ep, ilr):
                 # prediction
                 pred_maskv = model(xv)
                 # dice and BCE loss
-                vloss = loss_fn(pred_maskv, yv).cpu() #+ dice_loss(F.sigmoid(pred_maskv), yv)
+                vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
                 vlosslist.append(vloss.data.numpy()[0])
                 # ppv metric
                 va_metric = metric(F.sigmoid(pred_maskv), yv)
@@ -503,38 +500,15 @@ def train(bs, sample, vasample, ep, ilr):
                         vaimm = vaim[iit:iit + 1, :, :, :]
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
-                        pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
-                        ppp = pred_np[0,0,:,:]
-                        pred_np = pred_np[0,0,:,:]
-                        pred_npa = (pred_np>1.2).astype(np.uint8)
-                        pred_npb = (pred_np>0.9).astype(np.uint8)
-                        pred_np = pred_npa + pred_npb
-                        pww = pred_np
-                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(
+                        pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8) * 255
+                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
                             np.uint8)
-                        pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
+                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
-                        if np.max(pred_np) == np.min(pred_np):
-                            print('1st BOOM!')
-                            print(vasample['ID'][itr])
-                            if np.max(pww) == np.min(pww):
-                                print('2nd_BOOM!')
-                                if ppp.max() == 0 or ppp.min() == 2:
-                                    print('3rd_BOOM!')
-                                    imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
-                                           ppp.astype(np.uint8))
-                                else:
-                                    ppp = (ppp / ppp.max()) * 2
-                                    ppp = (ppp > 1.9).astype(np.uint8) * 2
-                                    imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
-                                           ((ppp / ppp.max()) * 255).astype(np.uint8))
-                            else:
-                                imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
-                                       ((pww / pww.max()) * 255).astype(np.uint8))
-                        else:
-                            imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png',
-                                   ((pred_np / pred_np.max())*255).astype(np.uint8))
+                        if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
+                            pred_np[0, 0, 1, 1] = pred_np[0, 0, 1, 1] + 1
+                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
                 break
 
     # Loss figures
@@ -561,46 +535,21 @@ def test(tesample, model, group):
         # pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
         # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
-        pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
-        ppp = pred_np[0,0,:,:]
-        pred_np = pred_np[0, 0, :, :]
-        pred_npa = (pred_np > 1.2).astype(np.uint8)
-        pred_npb = (pred_np > 0.9).astype(np.uint8)
-        pred_np = pred_npa + pred_npb
-        pww = pred_np
-        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
-        pred_np = mph.remove_small_holes(pred_np, min_size=20, connectivity=2)
+        pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
+        pred_np = pred_np[0,0,:,:]
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
+        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
         # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
         # markers = ndi.label(local_maxi)[0]
         # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
         # pred_np = (pred_np > 0)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
-        ppp = back_scale(ppp, tedim)
-        pww = back_scale(pww, tedim)
+        # save predicted mask
         if np.max(pred_np) == np.min(pred_np):
-            print('1st BOOM!')
-            print(teid)
-            if np.max(pww) == np.min(pww):
-                print('2nd_BOOM!')
-                if ppp.max() == 0 or ppp.min() == 2:
-                    print('3rd_BOOM!')
-                    imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
-                           ppp.astype(np.uint8))
-                    pred_np = ppp
-                else:
-                    ppp = (ppp / ppp.max()) * 2
-                    ppp = (ppp > 1.9).astype(np.uint8) * 2
-                    imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
-                           ((ppp / ppp.max()) * 255).astype(np.uint8))
-                    pred_np = ppp
-            else:
-                imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
-                       ((pww / pww.max()) * 255).astype(np.uint8))
-                pred_np = pww
-        else:
-            # save predicted mask
-            imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
+            pred_np[1, 1] = pred_np[1, 1] + 1
+        imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
+        # vectorize mask
         rle = list(prob_to_rles(pred_np))
         rles.extend(rle)
         test_ids.extend([teid] * len(rle))
@@ -612,9 +561,9 @@ def test(tesample, model, group):
     return sub
 
 # Read in files containing paths to training, validation, and testing images
-tr = pd.read_csv('../inputs/stage_1_train/musamples.csv', header=0,
+tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
-va = pd.read_csv('../inputs/stage_1_test/musamples.csv', header=0,
+va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
                        usecols=['Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
 te = pd.read_csv('../inputs/stage_2_test/samples.csv', header=0, usecols=['Image', 'ID', 'Width', 'Height'])
 # Load in images
@@ -628,7 +577,6 @@ modelX = Cuda(UNet())
 a = torch.load('../' + output + '/unet')
 modelX.load_state_dict(a['state_dict'])
 # test set prediction
-# tebsub = test(tebsample, modelX, 'stage_2_test')
 tebsub = test(tebsample, modelX, 'stage_2_test')
 # save vectorize masks as CSV
 tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)

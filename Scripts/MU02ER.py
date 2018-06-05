@@ -327,6 +327,19 @@ def dice_loss(input, target):
     intersection = (iflat * tflat).sum()
     return 1.0 - (((2. * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth)))
 
+
+# F1 score
+def Fscore(y_pred, target):
+    pred = Cuda((y_pred.view(-1) > 0.5).type(torch.FloatTensor))
+    target_vec = Cuda(target.view(-1).type(torch.FloatTensor))
+    label = target_vec.sum().cpu().data.numpy()
+    tp = (pred * target_vec).sum().cpu().data.numpy()
+    recall = tp / pred
+    precision = tp / label
+    F = 2 * precision * recall / (precision + recall)
+    return F
+
+
 # PPV metric function
 def metric(y_pred, target):
     pred = Cuda((y_pred.view(-1) > 0.5).type(torch.FloatTensor))
@@ -365,6 +378,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
         losslist = []
         tr_metric_list = []
         va_metric_list = []
+        tr_F_list = []
+        va_F_list = []
         for itr in range(batches_per_epoch):
             rows = order[itr * bs: (itr + 1) * bs]
             if itr + 1 == batches_per_epoch:
@@ -410,6 +425,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     # ppv metric
                     tr_metric = metric(F.sigmoid(pred_mask), y)
                     tr_metric_list.append(tr_metric)
+                    tr_F = Fscore(F.sigmoid(pred_mask), y)
+                    tr_F_list.append(tr_F)
                 elif mode == 'gap':
                     label_ratio = (trgaa > 0).sum() / (
                                 trgaa.shape[1] * trgaa.shape[2] * trgaa.shape[3] - (trgaa > 0).sum())
@@ -442,6 +459,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     # ppv metric
                     tr_metric = metric(F.sigmoid(pred_mask), y)
                     tr_metric_list.append(tr_metric)
+                    tr_F = Fscore(F.sigmoid(pred_mask), y)
+                    tr_F_list.append(tr_F)
             opt.step()
             opt.zero_grad()
 
@@ -484,6 +503,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     # ppv metric
                     va_metric = metric(F.sigmoid(pred_maskv), yv)
                     va_metric_list.append(va_metric)
+                    va_F = Fscore(F.sigmoid(pred_maskv), yv)
+                    va_F_list.append(va_F)
                 elif mode == 'gap':
                     # Calculate label positive and negative ratio
                     label_ratio = (vagaa>0).sum() / (vagaa.shape[1]*vagaa.shape[2] * vagaa.shape[3] - (vagaa>0).sum())
@@ -512,14 +533,18 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     # ppv metric
                     va_metric = metric(F.sigmoid(pred_maskv), yv)
                     va_metric_list.append(va_metric)
+                    va_F = Fscore(F.sigmoid(pred_maskv), yv)
+                    va_F_list.append(va_F)
         lossa = np.mean(losslist)
         vlossa = np.mean(vlosslist)
         tr_score = np.mean(tr_metric_list)
         va_score = np.mean(va_metric_list)
+        tr_Fscore = np.mean(tr_F_list)
+        va_Fscore = np.mean(va_F_list)
         # Print epoch summary
         print(
-            'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train Score {:>1.5f} | Val Score {:>1.5f} '.format(
-                epoch + 1, lr, lossa, vlossa, tr_score, va_score))
+            'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train Score {:>1.5f} | Val Score {:>1.5f} | Train F1 {:>1.5f} | Val F1 {:>1.5f}'.format(
+                epoch + 1, lr, lossa, vlossa, tr_score, va_score, tr_Fscore, va_Fscore))
         losslists.append(lossa)
         vlosslists.append(vlossa)
 
@@ -549,10 +574,10 @@ def train(bs, sample, vasample, ep, ilr, mode):
                         pred_np = (F.sigmoid(pred_maskv)).cpu().data.numpy()
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np.round().astype(np.uint8)
-                        pred_np = pred_np[0,0,:,:]
+                        pred_np = pred_np[0, 0, :, :]
                         pww = pred_np
-                        if not os.path.exists('../' + output + '/'+ mode +'validation/'):
-                            os.makedirs('../' + output + '/'+ mode +'validation/')
+                        if not os.path.exists('../' + output + '/' + mode + 'validation/'):
+                            os.makedirs('../' + output + '/' + mode + 'validation/')
                         if mode == 'nuke':
                             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30,
                                                                connectivity=2).astype(np.uint8)
@@ -580,9 +605,9 @@ def train(bs, sample, vasample, ep, ilr, mode):
                                 imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
                                        ((pww / pww.max()) * 255).astype(np.uint8))
                         else:
-                            imsave('../' + output + '/'+ mode +'validation/'+ vasample['ID'][itr] + '.png',
+                            imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
                                    ((pred_np / pred_np.max()) * 255).astype(np.uint8))
-                break
+                    break
 
     # Loss figures
     plt.plot(losslists)
@@ -651,6 +676,8 @@ def vatest(vasample):
         a = imread('../' + output + '/nukevalidation/' + vaid + '.png')
         b = imread('../' + output + '/gapvalidation/' + vaid + '.png')
         out = np.clip(a - b, 0, None)
+        out = mph.remove_small_objects(out, min_size=30, connectivity=2)
+        out = mph.remove_small_holes(out, min_size=30, connectivity=2)
         imsave('../' + output + '/validation/' + vaid + '_pred.png',
                ((out / out.max()) * 255).astype(np.uint8))
 
@@ -665,6 +692,8 @@ def cbtest(tesample, group):
         a = imread('../' + output + '/' + group + '/' + teid + '_nuke_pred.png')
         b = imread('../' + output + '/' + group + '/' + teid + '_gap_pred.png')
         out = np.clip(a - b, 0, None)
+        out = mph.remove_small_objects(out, min_size=30, connectivity=2)
+        out = mph.remove_small_holes(out, min_size=30, connectivity=2)
         out = ((out / out.max()) * 255).astype(np.uint8)
         imsave('../' + output + '/final_' + group + '/' + teid + '_pred.png',
                ((out / out.max()) * 255).astype(np.uint8))
