@@ -330,10 +330,10 @@ def dice_loss(input, target):
 
 # F1 score
 def Fscore(y_pred, target):
-    pred = Cuda((y_pred.view(-1) > 0.5).type(torch.FloatTensor))
-    target_vec = Cuda(target.view(-1).type(torch.FloatTensor))
-    label = target_vec.sum().cpu().data.numpy()
-    tp = (pred * target_vec).sum().cpu().data.numpy()
+    pred = (y_pred.view(-1) > 0.5).type(torch.FloatTensor)
+    target_vec = target.view(-1).type(torch.FloatTensor)
+    label = target_vec.sum().data.numpy()
+    tp = (pred * target_vec).sum().data.numpy()
     recall = tp / pred
     precision = tp / label
     F = 2 * precision * recall / (precision + recall)
