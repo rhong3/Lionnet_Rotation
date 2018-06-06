@@ -330,11 +330,12 @@ def dice_loss(input, target):
 
 # F1 score
 def Fscore(y_pred, target):
-    pred = (y_pred.view(-1) > 0.5).type(torch.FloatTensor)
-    target_vec = target.view(-1).type(torch.FloatTensor)
-    label = target_vec.sum().data.numpy()
-    tp = (pred * target_vec).sum().data.numpy()
-    recall = tp / pred
+    pred = Cuda((y_pred.view(-1) > 0.5).type(torch.FloatTensor))
+    target_vec = Cuda(target.view(-1).type(torch.FloatTensor))
+    label = target_vec.sum().cpu().data.numpy()
+    tp = (pred * target_vec).sum().cpu().data.numpy()
+    predicted = pred.sum().cpu().data.numpy()
+    recall = tp / predicted
     precision = tp / label
     F = 2 * precision * recall / (precision + recall)
     return F
@@ -376,8 +377,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
         lr = init_lr * lr_dec
         order = np.arange(rows_trn)
         losslist = []
-        # tr_metric_list = []
-        # va_metric_list = []
+        tr_metric_list = []
+        va_metric_list = []
         tr_F_list = []
         va_F_list = []
         for itr in range(batches_per_epoch):
@@ -423,8 +424,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     losslist.append(loss.data.numpy()[0])
                     loss.backward()
                     # ppv metric
-                    # tr_metric = metric(F.sigmoid(pred_mask), y)
-                    # tr_metric_list.append(tr_metric)
+                    tr_metric = metric(F.sigmoid(pred_mask), y)
+                    tr_metric_list.append(tr_metric)
                     tr_F = Fscore(F.sigmoid(pred_mask), y)
                     tr_F_list.append(tr_F)
                 elif mode == 'gap':
@@ -457,8 +458,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     losslist.append(loss.data.numpy()[0])
                     loss.backward()
                     # ppv metric
-                    # tr_metric = metric(F.sigmoid(pred_mask), y)
-                    # tr_metric_list.append(tr_metric)
+                    tr_metric = metric(F.sigmoid(pred_mask), y)
+                    tr_metric_list.append(tr_metric)
                     tr_F = Fscore(F.sigmoid(pred_mask), y)
                     tr_F_list.append(tr_F)
             opt.step()
@@ -501,8 +502,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
                     vlosslist.append(vloss.data.numpy()[0])
                     # ppv metric
-                    # va_metric = metric(F.sigmoid(pred_maskv), yv)
-                    # va_metric_list.append(va_metric)
+                    va_metric = metric(F.sigmoid(pred_maskv), yv)
+                    va_metric_list.append(va_metric)
                     va_F = Fscore(F.sigmoid(pred_maskv), yv)
                     va_F_list.append(va_F)
                 elif mode == 'gap':
@@ -531,20 +532,20 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
                     vlosslist.append(vloss.data.numpy()[0])
                     # ppv metric
-                    # va_metric = metric(F.sigmoid(pred_maskv), yv)
-                    # va_metric_list.append(va_metric)
+                    va_metric = metric(F.sigmoid(pred_maskv), yv)
+                    va_metric_list.append(va_metric)
                     va_F = Fscore(F.sigmoid(pred_maskv), yv)
                     va_F_list.append(va_F)
         lossa = np.mean(losslist)
         vlossa = np.mean(vlosslist)
-        # tr_score = np.mean(tr_metric_list)
-        # va_score = np.mean(va_metric_list)
+        tr_score = np.mean(tr_metric_list)
+        va_score = np.mean(va_metric_list)
         tr_Fscore = np.mean(tr_F_list)
         va_Fscore = np.mean(va_F_list)
         # Print epoch summary
         print(
-            'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | Val Score {:>1.5f} | Train F1 {:>1.5f} | Val F1 {:>1.5f}'.format(
-                epoch + 1, lr, lossa, vlossa, tr_Fscore, va_Fscore))
+            'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train F1 {:>1.5f} | Val F1 {:>1.5f} | Train PPV {:>1.5f} | Val PPV {:>1.5f}'.format(
+                epoch + 1, lr, lossa, vlossa, tr_Fscore, va_Fscore, tr_score, va_score))
         losslists.append(lossa)
         vlosslists.append(vlossa)
 
