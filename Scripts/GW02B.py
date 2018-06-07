@@ -395,17 +395,17 @@ def train(bs, sample, vasample, ep, ilr):
                 label_ratio = (trlaa>0).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1)+10*trgaa[0,0,:,:]/255)
+                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1)+15*trgaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1)+10*trgaa[0,0,:,:]/255)
+                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1)+15*trgaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = (np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]) + 10*trgaa[0,0,:,:]/255)/2 * 255
+                    add_weight = (np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]) + 15*trgaa[0,0,:,:]/255)/2 * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # Cuda and tensor inputs and label
                 x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
@@ -439,17 +439,17 @@ def train(bs, sample, vasample, ep, ilr):
                 label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1) + 10*vagaa[0,0,:,:]/255)
+                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1) + 15*vagaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1) + 10*vagaa[0,0,:,:]/255)
+                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1) + 15*vagaa[0,0,:,:]/255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]])+10*vagaa[0,0,:,:]/255)/2 * 255
+                    add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]])+15*vagaa[0,0,:,:]/255)/2 * 255
                     loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # cuda and tensor sample
                 xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
@@ -471,7 +471,7 @@ def train(bs, sample, vasample, ep, ilr):
         va_score = np.mean(va_metric_list)
         tr_Fscore = np.mean(tr_F_list)
         va_Fscore = np.mean(va_F_list)
-        # Print epoch summary
+
         # Print epoch summary
         print(
             'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train F1 {:>1.5f} | Val F1 {:>1.5f} | Train PPV {:>1.5f} | Val PPV {:>1.5f}'.format(
@@ -483,6 +483,10 @@ def train(bs, sample, vasample, ep, ilr):
             param_group['lr'] = lr
         # Save model every 10 epoch
         if vlossa == np.min(vlosslists):
+            print('Min PPV so far:')
+            print(va_score)
+            print('Min F so far:')
+            print(va_Fscore)
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
@@ -495,23 +499,47 @@ def train(bs, sample, vasample, ep, ilr):
                 lr_dec = lr_dec / 10
         # if no change or increase in loss for consecutive 15 epochs, save validation predictions and stop training
         if epoch > 15:
-            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]) or epoch+1 == ep:
+            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]) or epoch + 1 == ep:
                 for itr in range(rows_val):
                     vaim = vasample['Image'][itr]
                     for iit in range(1):
                         vaimm = vaim[iit:iit + 1, :, :, :]
                         xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                         pred_maskv = model(xv)
-                        pred_np = (F.sigmoid(pred_maskv) > 0.5).cpu().data.numpy().astype(np.uint8) * 255
-                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(
-                            np.uint8)
-                        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
+                        pred_np = (F.sigmoid(pred_maskv)).cpu().data.numpy()
+                        ppp = pred_np[0, 0, :, :]
+                        pred_np = pred_np.round().astype(np.uint8)
+                        pred_np = pred_np[0, 0, :, :]
+                        pww = pred_np
                         if not os.path.exists('../' + output + '/validation/'):
                             os.makedirs('../' + output + '/validation/')
-                        if np.max(pred_np[0,0,:,:]) == np.min(pred_np[0,0,:,:]):
-                            pred_np[0, 0, 1, 1] = pred_np[0, 0, 1, 1] + 1
-                        imsave('../' + output + '/validation/'+ vasample['ID'][itr] + '.png', pred_np[0,0,:,:])
-                break
+                        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30,
+                                                           connectivity=2).astype(np.uint8)
+                        pred_np = mph.remove_small_holes(pred_np.astype(bool), min_size=30, connectivity=2)
+                        if np.max(pred_np) == np.min(pred_np):
+                            print('1st_BOOM!')
+                            print(vasample['ID'][itr])
+                            if np.max(pww) == np.min(pww):
+                                print('2nd_BOOM!')
+                                if ppp.max() == 0 or ppp.min() == 1:
+                                    print('3rd_BOOM!')
+                                    imsave('../' + output + '/validation/' + vasample['ID'][
+                                        itr] + '.png',
+                                           ppp.astype(np.uint8))
+                                else:
+                                    ppp = (ppp / ppp.max()) * 1
+                                    ppp = (ppp > 0.95).astype(np.uint8)
+                                    imsave('../' + output + '/validation/' + vasample['ID'][
+                                        itr] + '.png',
+                                           ((ppp / ppp.max()) * 255).astype(np.uint8))
+                            else:
+                                imsave(
+                                    '../' + output + '/validation/' + vasample['ID'][itr] + '.png',
+                                    ((pww / pww.max()) * 255).astype(np.uint8))
+                        else:
+                            imsave('../' + output + '/validation/' + vasample['ID'][itr] + '.png',
+                                   ((pred_np / pred_np.max()) * 255).astype(np.uint8))
+                    break
 
     # Loss figures
     plt.plot(losslists)
@@ -537,21 +565,41 @@ def test(tesample, model, group):
         # pdm = F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:]
         # raw = (pdm / pdm.max() * 255).astype(np.uint8)
         # binarize output mask
-        pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
-        pred_np = pred_np[0,0,:,:]
-        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=40, connectivity=2).astype(np.uint8)
-        pred_np = mph.remove_small_holes(pred_np, min_size=40, connectivity=2)
-        # local_maxi = peak_local_max(raw, indices=False, min_distance=20, labels=pred_np)
-        # markers = ndi.label(local_maxi)[0]
-        # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
-        # pred_np = (pred_np > 0)
+        pred_np = (F.sigmoid(pred_mask)).cpu().data.numpy()
+        ppp = pred_np[0, 0, :, :]
+        pred_np = pred_np.round().astype(np.uint8)
+        pred_np = pred_np[0, 0, :, :]
+        pww = pred_np
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
+        pred_np = mph.remove_small_holes(pred_np.astype(bool), min_size=30, connectivity=2)
         # cut back to original image size
         pred_np = back_scale(pred_np, tedim)
-        # save predicted mask
+        ppp = back_scale(ppp, tedim)
+        pww = back_scale(pww, tedim)
         if np.max(pred_np) == np.min(pred_np):
-            pred_np[1, 1] = pred_np[1, 1] + 1
-        imsave('../' + output + '/' + group + '/' + teid + '_pred.png', ((pred_np/pred_np.max())*255).astype(np.uint8))
-        # vectorize mask
+            print('1st BOOM!')
+            print(teid)
+            if np.max(pww) == np.min(pww):
+                print('2nd_BOOM!')
+                if ppp.max() == 0 or ppp.min() == 1:
+                    print('3rd_BOOM!')
+                    imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                           ppp.astype(np.uint8))
+                    pred_np = ppp
+                else:
+                    ppp = (ppp / ppp.max()) * 1
+                    ppp = (ppp > 0.95).astype(np.uint8)
+                    imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                           ((ppp / ppp.max()) * 255).astype(np.uint8))
+                    pred_np = ppp
+            else:
+                imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                       ((pww / pww.max()) * 255).astype(np.uint8))
+                pred_np = pww
+        else:
+            # save predicted mask
+            imsave('../' + output + '/' + group + '/' + teid + '_pred.png',
+                   ((pred_np / pred_np.max()) * 255).astype(np.uint8))
         rle = list(prob_to_rles(pred_np))
         rles.extend(rle)
         test_ids.extend([teid] * len(rle))
