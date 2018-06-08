@@ -553,9 +553,9 @@ def train(bs, sample, vasample, ep, ilr, mode):
             param_group['lr'] = lr
         # Save model every 10 epoch
         if vlossa == np.min(vlosslists):
-            print('Min PPV so far:')
+            print('Max PPV so far:')
             print(va_score)
-            print('Min F so far:')
+            print('Max F so far:')
             print(va_Fscore)
             checkpoint = {
                 'epoch': epoch + 1,

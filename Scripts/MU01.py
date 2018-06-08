@@ -485,9 +485,9 @@ def train(bs, sample, vasample, ep, ilr):
             param_group['lr'] = lr
         # Save model every 10 epoch
         if vlossa == np.min(vlosslists):
-            print('Min PPV so far:')
+            print('Max PPV so far:')
             print(va_score)
-            print('Min F so far:')
+            print('Max F so far:')
             print(va_Fscore)
             checkpoint = {
                 'epoch': epoch + 1,
@@ -511,8 +511,8 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np[0,0,:,:]
-                        pred_npa = (pred_np>1.2).astype(np.uint8)
-                        pred_npb = (pred_np>0.9).astype(np.uint8)
+                        pred_npa = (pred_np>1.15).astype(np.uint8)
+                        pred_npb = (pred_np>0.95).astype(np.uint8)
                         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
                         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
                         pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
@@ -570,8 +570,8 @@ def test(tesample, model, group):
         pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
         ppp = pred_np[0,0,:,:]
         pred_np = pred_np[0, 0, :, :]
-        pred_npa = (pred_np > 1.2).astype(np.uint8)
-        pred_npb = (pred_np > 0.9).astype(np.uint8)
+        pred_npa = (pred_np > 1.15).astype(np.uint8)
+        pred_npb = (pred_np > 0.95).astype(np.uint8)
         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
         pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=20, connectivity=2).astype(np.uint8)
