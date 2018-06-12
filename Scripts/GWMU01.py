@@ -398,18 +398,21 @@ def train(bs, sample, vasample, ep, ilr):
                 label_ratio = (trlaa>250).sum() / (trlaa.shape[1]*trlaa.shape[2]*trlaa.shape[3] - (trlaa>250).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
+                    add_weight = (trlaa[0, 0, :, :] / 255 + 1 / (1 / label_ratio - 1) + 20 * trgaa[0, 0, :, :] / 255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                    loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                    loss_fn = torch.nn.BCEWithLogitsLoss(
+                        weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (trlaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
+                    add_weight = (trlaa[0, 0, :, :] / 255 + 1 / (label_ratio - 1) + 20 * trgaa[0, 0, :, :] / 255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                    loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                    loss_fn = torch.nn.BCEWithLogitsLoss(
+                        weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = (np.ones([1,1,trlaa.shape[2], trlaa.shape[3]]))/2 * 255
-                    loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                    add_weight = (np.ones([1, 1, trlaa.shape[2], trlaa.shape[3]]) + 20 * trgaa[0, 0, :, :] / 255) / 2 * 255
+                    loss_fn = torch.nn.BCEWithLogitsLoss(
+                        weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # Cuda and tensor inputs and label
                 x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
                 y = Cuda(Variable(torch.from_numpy(trlaa / 255).type(torch.FloatTensor)))
@@ -442,18 +445,21 @@ def train(bs, sample, vasample, ep, ilr):
                 label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
                 # If smaller than 1, add weight to positive prediction
                 if label_ratio < 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
+                    add_weight = (valaa[0, 0, :, :] / 255 + 1 / (1 / label_ratio - 1) + 20 * vagaa[0, 0, :, :] / 255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                    loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                    loss_fn = torch.nn.BCEWithLogitsLoss(
+                        weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If smaller than 1, add weight to negative prediction
                 elif label_ratio > 1:
-                    add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
+                    add_weight = (valaa[0, 0, :, :] / 255 + 1 / (label_ratio - 1) + 20 * vagaa[0, 0, :, :] / 255)
                     add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                    loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                    loss_fn = torch.nn.BCEWithLogitsLoss(
+                        weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # If equal to 1, no weight added
                 elif label_ratio == 1:
-                    add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]]))/2 * 255
-                    loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
+                    add_weight = (np.ones([1, 1, valaa.shape[2], valaa.shape[3]]) + 20 * vagaa[0, 0, :, :] / 255) / 2 * 255
+                    loss_fn = torch.nn.BCEWithLogitsLoss(
+                        weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
                 # cuda and tensor sample
                 xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
                 yv = Cuda(Variable(torch.from_numpy(valaa / 255).type(torch.FloatTensor)))
