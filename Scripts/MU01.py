@@ -511,7 +511,7 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np[0,0,:,:]
-                        pred_npa = (pred_np>1.2).astype(np.uint8)
+                        pred_npa = (pred_np>1.25).astype(np.uint8)
                         pred_npb = (pred_np>0.95).astype(np.uint8)
                         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
                         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
@@ -570,7 +570,7 @@ def test(tesample, model, group):
         pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
         ppp = pred_np[0,0,:,:]
         pred_np = pred_np[0, 0, :, :]
-        pred_npa = (pred_np > 1.2).astype(np.uint8)
+        pred_npa = (pred_np > 1.25).astype(np.uint8)
         pred_npb = (pred_np > 0.95).astype(np.uint8)
         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
