@@ -371,6 +371,8 @@ def train(bs, sample, vasample, ep, ilr):
     batches_per_epoch = rows_trn // bs
     losslists = []
     vlosslists = []
+    Fscorelist = []
+    PPVlist = []
 
     for epoch in range(ep):
         # Learning rate
@@ -474,27 +476,46 @@ def train(bs, sample, vasample, ep, ilr):
         va_score = np.mean(va_metric_list)
         tr_Fscore = np.mean(tr_F_list)
         va_Fscore = np.mean(va_F_list)
+
         # Print epoch summary
         print(
             'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train F1 {:>1.5f} | Val F1 {:>1.5f} | Train PPV {:>1.5f} | Val PPV {:>1.5f}'.format(
                 epoch + 1, lr, lossa, vlossa, tr_Fscore, va_Fscore, tr_score, va_score))
         losslists.append(lossa)
         vlosslists.append(vlossa)
+        Fscorelist.append(va_Fscore)
+        PPVlist.append(va_score)
 
         for param_group in opt.param_groups:
             param_group['lr'] = lr
-        # Save model every 10 epoch
+        # Save models
         if vlossa == np.min(vlosslists):
-            print('Max PPV so far:')
-            print(va_score)
-            print('Max F so far:')
+            print('Min loss found:')
+            print(vlossa)
+            checkpoint = {
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'optimizer': opt.state_dict(),
+            }
+            torch.save(checkpoint, '../' + output + '/loss_unet')
+        if va_Fscore == np.min(Fscorelist):
+            print('Max F found:')
             print(va_Fscore)
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
                 'optimizer': opt.state_dict(),
             }
-            torch.save(checkpoint, '../' + output + '/unet')
+            torch.save(checkpoint, '../' + output + '/F_unet')
+        if va_score == np.min(PPVlist):
+            print('Max PPV found:')
+            print(va_score)
+            checkpoint = {
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'optimizer': opt.state_dict(),
+            }
+            torch.save(checkpoint, '../' + output + '/PPV_unet')
         # if no change or increase in loss for consecutive 6 epochs, decrease learning rate by 10 folds
         if epoch > 6:
             if losscp(losslists[-5:]) or losscp(vlosslists[-5:]):
@@ -511,7 +532,7 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np[0,0,:,:]
-                        pred_npa = (pred_np>1.25).astype(np.uint8)
+                        pred_npa = (pred_np>1.22).astype(np.uint8)
                         pred_npb = (pred_np>0.95).astype(np.uint8)
                         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
                         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
@@ -570,7 +591,7 @@ def test(tesample, model, group):
         pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
         ppp = pred_np[0,0,:,:]
         pred_np = pred_np[0, 0, :, :]
-        pred_npa = (pred_np > 1.25).astype(np.uint8)
+        pred_npa = (pred_np > 1.22).astype(np.uint8)
         pred_npb = (pred_np > 0.95).astype(np.uint8)
         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
@@ -633,10 +654,25 @@ tebsample = dataloader(te, 'test')
 # training
 train(1, trsample, vasample, int(eps), float(LR))
 modelX = Cuda(UNet())
-a = torch.load('../' + output + '/unet')
+a = torch.load('../' + output + '/loss_unet')
 modelX.load_state_dict(a['state_dict'])
 # test set prediction
-# tebsub = test(tebsample, modelX, 'stage_2_test')
-tebsub = test(tebsample, modelX, 'stage_2_test')
+tebsub = test(tebsample, modelX, 'L_stage_2_test')
 # save vectorize masks as CSV
-tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
+tebsub.to_csv('../' + output + '/L_stage_2_test_sub.csv', index=False)
+
+modelX = Cuda(UNet())
+a = torch.load('../' + output + '/F_unet')
+modelX.load_state_dict(a['state_dict'])
+# test set prediction
+tebsub = test(tebsample, modelX, 'F_stage_2_test')
+# save vectorize masks as CSV
+tebsub.to_csv('../' + output + '/F_stage_2_test_sub.csv', index=False)
+
+modelX = Cuda(UNet())
+a = torch.load('../' + output + '/PPV_unet')
+modelX.load_state_dict(a['state_dict'])
+# test set prediction
+tebsub = test(tebsample, modelX, 'P_stage_2_test')
+# save vectorize masks as CSV
+tebsub.to_csv('../' + output + '/P_stage_2_test_sub.csv', index=False)
