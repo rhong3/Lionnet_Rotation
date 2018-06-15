@@ -487,8 +487,8 @@ def train(bs, sample, vasample, ep, ilr):
         vlosslists.append(vlossa)
         Fscorelist.append(va_Fscore)
         PPVlist.append(va_score)
-        Fscorelist = np.nan_to_num(Fscorelist)
-        PPVlist = np.nan_to_num(PPVlist)
+        # Fscorelist = np.nan_to_num(Fscorelist)
+        # PPVlist = np.nan_to_num(PPVlist)
 
 
         for param_group in opt.param_groups:
