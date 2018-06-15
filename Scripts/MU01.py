@@ -474,6 +474,8 @@ def train(bs, sample, vasample, ep, ilr):
         vlossa = np.mean(vlosslist)
         tr_score = np.mean(tr_metric_list)
         va_score = np.mean(va_metric_list)
+        tr_F_list = np.nan_to_num(tr_F_list)
+        va_F_list = np.nan_to_num(va_F_list)
         tr_Fscore = np.mean(tr_F_list)
         va_Fscore = np.mean(va_F_list)
 
@@ -485,6 +487,9 @@ def train(bs, sample, vasample, ep, ilr):
         vlosslists.append(vlossa)
         Fscorelist.append(va_Fscore)
         PPVlist.append(va_score)
+        Fscorelist = np.nan_to_num(Fscorelist)
+        PPVlist = np.nan_to_num(PPVlist)
+
 
         for param_group in opt.param_groups:
             param_group['lr'] = lr
@@ -498,7 +503,7 @@ def train(bs, sample, vasample, ep, ilr):
                 'optimizer': opt.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/loss_unet')
-        if va_Fscore == np.min(Fscorelist):
+        if va_Fscore == np.max(Fscorelist):
             print('Max F found:')
             print(va_Fscore)
             checkpoint = {
@@ -507,7 +512,7 @@ def train(bs, sample, vasample, ep, ilr):
                 'optimizer': opt.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/F_unet')
-        if va_score == np.min(PPVlist):
+        if va_score == np.max(PPVlist):
             print('Max PPV found:')
             print(va_score)
             checkpoint = {
@@ -532,7 +537,7 @@ def train(bs, sample, vasample, ep, ilr):
                         pred_np = (F.sigmoid(pred_maskv).cpu().data.numpy())*2
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np[0,0,:,:]
-                        pred_npa = (pred_np>1.22).astype(np.uint8)
+                        pred_npa = (pred_np>1.21).astype(np.uint8)
                         pred_npb = (pred_np>0.95).astype(np.uint8)
                         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
                         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
@@ -591,7 +596,7 @@ def test(tesample, model, group):
         pred_np = (F.sigmoid(pred_mask).cpu().data.numpy()) * 2
         ppp = pred_np[0,0,:,:]
         pred_np = pred_np[0, 0, :, :]
-        pred_npa = (pred_np > 1.22).astype(np.uint8)
+        pred_npa = (pred_np > 1.21).astype(np.uint8)
         pred_npb = (pred_np > 0.95).astype(np.uint8)
         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
