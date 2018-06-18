@@ -371,6 +371,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
     batches_per_epoch = rows_trn // bs
     losslists = []
     vlosslists = []
+    Fscorelist = []
+    PPVlist = []
 
     for epoch in range(ep):
         # Learning rate
@@ -540,6 +542,8 @@ def train(bs, sample, vasample, ep, ilr, mode):
         vlossa = np.mean(vlosslist)
         tr_score = np.mean(tr_metric_list)
         va_score = np.mean(va_metric_list)
+        tr_F_list = np.nan_to_num(tr_F_list)
+        va_F_list = np.nan_to_num(va_F_list)
         tr_Fscore = np.mean(tr_F_list)
         va_Fscore = np.mean(va_F_list)
         # Print epoch summary
@@ -548,21 +552,40 @@ def train(bs, sample, vasample, ep, ilr, mode):
                 epoch + 1, lr, lossa, vlossa, tr_Fscore, va_Fscore, tr_score, va_score))
         losslists.append(lossa)
         vlosslists.append(vlossa)
+        Fscorelist.append(va_Fscore)
+        PPVlist.append(va_score)
 
         for param_group in opt.param_groups:
             param_group['lr'] = lr
-        # Save model every 10 epoch
+        # Save models
         if vlossa == np.min(vlosslists):
-            print('Max PPV so far:')
-            print(va_score)
-            print('Max F so far:')
+            print('Min loss found:')
+            print(vlossa)
+            checkpoint = {
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'optimizer': opt.state_dict(),
+            }
+            torch.save(checkpoint, '../' + output + '/' + mode + 'loss_unet')
+        if va_Fscore == np.max(Fscorelist):
+            print('Max F found:')
             print(va_Fscore)
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
                 'optimizer': opt.state_dict(),
             }
-            torch.save(checkpoint, '../' + output + '/'+ mode + '_unet')
+            torch.save(checkpoint, '../' + output + '/' + mode + 'F_unet')
+        if va_score == np.max(PPVlist):
+            print('Max PPV found:')
+            print(va_score)
+            checkpoint = {
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'optimizer': opt.state_dict(),
+            }
+            torch.save(checkpoint, '../' + output + '/' + mode + 'PPV_unet')
+
         # if no change or increase in loss for consecutive 6 epochs, decrease learning rate by 10 folds
         if epoch > 6:
             if losscp(losslists[-5:]) or losscp(vlosslists[-5:]):
@@ -730,15 +753,34 @@ train(1, trsample, vasample, int(eps), float(LR), 'nuke')
 train(1, trsample, vasample, int(eps), float(LR), 'gap')
 vatest(vasample)
 modelX = Cuda(UNet())
-a = torch.load('../' + output + '/nuke_unet')
+a = torch.load('../' + output + '/nukeloss_unet')
 modelX.load_state_dict(a['state_dict'])
-# test set prediction
-# tebsub = test(tebsample, modelX, 'stage_2_test')
-test(tebsample, modelX, 'stage_2_test', 'nuke')
-a = torch.load('../' + output + '/gap_unet')
+test(tebsample, modelX, 'L_stage_2_test', 'nuke')
+a = torch.load('../' + output + '/gaploss_unet')
 modelX.load_state_dict(a['state_dict'])
-test(tebsample, modelX, 'stage_2_test', 'gap')
-tebsub = cbtest(tebsample, 'stage_2_test')
+test(tebsample, modelX, 'L_stage_2_test', 'gap')
+tebsub = cbtest(tebsample, 'L_stage_2_test')
 # save vectorize masks as CSV
-tebsub.to_csv('../' + output + '/stage_2_test_sub.csv', index=False)
+tebsub.to_csv('../' + output + '/L_stage_2_test_sub.csv', index=False)
 
+modelX = Cuda(UNet())
+a = torch.load('../' + output + '/nukeF_unet')
+modelX.load_state_dict(a['state_dict'])
+test(tebsample, modelX, 'F_stage_2_test', 'nuke')
+a = torch.load('../' + output + '/gapF_unet')
+modelX.load_state_dict(a['state_dict'])
+test(tebsample, modelX, 'F_stage_2_test', 'gap')
+tebsub = cbtest(tebsample, 'F_stage_2_test')
+# save vectorize masks as CSV
+tebsub.to_csv('../' + output + '/F_stage_2_test_sub.csv', index=False)
+
+modelX = Cuda(UNet())
+a = torch.load('../' + output + '/nukePPV_unet')
+modelX.load_state_dict(a['state_dict'])
+test(tebsample, modelX, 'P_stage_2_test', 'nuke')
+a = torch.load('../' + output + '/gapPPV_unet')
+modelX.load_state_dict(a['state_dict'])
+test(tebsample, modelX, 'P_stage_2_test', 'gap')
+tebsub = cbtest(tebsample, 'P_stage_2_test')
+# save vectorize masks as CSV
+tebsub.to_csv('../' + output + '/P_stage_2_test_sub.csv', index=False)
