@@ -190,7 +190,7 @@ def test(tesample, model):
                     qq[j,k,:,:] = scipy.misc.imresize(teim[j,k,:,:], (1024, 1024))
             teim = qq
         ott = np.empty((teim.shape[0], Da, Db))
-        stk = np.empty((Da, Db))
+        stk = np.zeros((Da, Db))
         for itt in range(teim.shape[0]):
             xx = teim[itt:itt+1, :, :, :]
             # num = 1 - (xx>0).sum()/(xx.shape[1]*xx.shape[2] * xx.shape[3])
@@ -201,18 +201,20 @@ def test(tesample, model):
             pred_np = (F.sigmoid(pred_mask).cpu().data.numpy())*2
             # print(np.shape(pred_np))
             pred_np = pred_np[0, 0, :, :]
-            pred_npa = (pred_np > 1.20).astype(np.uint8)
+            pred_npa = (pred_np > 1.25).astype(np.uint8)
             pred_npb = (pred_np > 1).astype(np.uint8)
             pred_npa = scipy.misc.imresize(pred_npa, (Da, Db))
             pred_npb = scipy.misc.imresize(pred_npb, (Da, Db))
+            # pred_npa = np.nan_to_num(pred_npa)
+            # pred_npb = np.nan_to_num(pred_npb)
             pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
-            pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
+            pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=1000, connectivity=2).astype(np.uint8)
             pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
-            pred_npb = mph.remove_small_holes(pred_npb.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
+            pred_npb = mph.remove_small_holes(pred_npb.astype(bool), min_size=1000, connectivity=2).astype(np.uint8)
             pred_np = pred_npa + pred_npb
             stk += pred_np
             ott[itt,:,:] = pred_np
-        stk = np.nan_to_num(stk)
+        # stk = np.nan_to_num(stk)
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 
