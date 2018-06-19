@@ -212,8 +212,7 @@ def test(tesample, model):
             pred_np = pred_npa + pred_npb
             stk += pred_np
             ott[itt,:,:] = pred_np
-        print(np.max(stk))
-        print(np.sum(stk))
+        stk = np.nan_to_num(stk)
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 
