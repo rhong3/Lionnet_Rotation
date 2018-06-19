@@ -538,7 +538,7 @@ def train(bs, sample, vasample, ep, ilr):
                         ppp = pred_np[0,0,:,:]
                         pred_np = pred_np[0,0,:,:]
                         pred_npa = (pred_np>1.20).astype(np.uint8)
-                        pred_npb = (pred_np>0.95).astype(np.uint8)
+                        pred_npb = (pred_np>1).astype(np.uint8)
                         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
                         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
                         pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
@@ -597,7 +597,7 @@ def test(tesample, model, group):
         ppp = pred_np[0,0,:,:]
         pred_np = pred_np[0, 0, :, :]
         pred_npa = (pred_np > 1.20).astype(np.uint8)
-        pred_npb = (pred_np > 0.95).astype(np.uint8)
+        pred_npb = (pred_np > 1).astype(np.uint8)
         pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
         pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
         pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=30, connectivity=2).astype(np.uint8)
