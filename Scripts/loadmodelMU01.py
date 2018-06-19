@@ -200,9 +200,11 @@ def test(tesample, model):
             pred_mask = model(xt)
             pred_np = (F.sigmoid(pred_mask).cpu().data.numpy())*2
             # print(np.shape(pred_np))
-            pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
+            pred_np = pred_np[0, 0, :, :]
             pred_npa = (pred_np > 1.20).astype(np.uint8)
             pred_npb = (pred_np > 1).astype(np.uint8)
+            pred_npa = scipy.misc.imresize(pred_npa, (Da, Db))
+            pred_npb = scipy.misc.imresize(pred_npb, (Da, Db))
             pred_npa = mph.remove_small_objects(pred_npa.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             pred_npa = mph.remove_small_holes(pred_npa.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
