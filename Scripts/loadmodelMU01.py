@@ -210,8 +210,10 @@ def test(tesample, model):
             pred_npb = mph.remove_small_objects(pred_npb.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             pred_npb = mph.remove_small_holes(pred_npb.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             pred_np = pred_npa + pred_npb
-            stk = stk + pred_np
+            stk += pred_np
             ott[itt,:,:] = pred_np
+        print(np.max(stk))
+        print(np.sum(stk))
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 
