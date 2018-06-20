@@ -195,7 +195,7 @@ def test(tesample, model):
                     qq[j,k,:,:] = scipy.misc.imresize(teim[j,k,:,:], (1024, 1024))
             teim = qq
         ott = np.empty((teim.shape[0], Da, Db))
-        stk = np.empty((Da, Db))
+        stk = np.zeros((Da, Db))
         for itt in range(teim.shape[0]):
             xx = teim[itt:itt+1, :, :, :]
             # num = 1 - (xx>0).sum()/(xx.shape[1]*xx.shape[2] * xx.shape[3])
@@ -205,7 +205,7 @@ def test(tesample, model):
             pred_mask = model(xt)
             # raw = scipy.misc.imresize(F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:],(Da, Db))
             # raw = (raw/raw.max()*255).astype(np.uint8)
-            pred_np = (F.sigmoid(pred_mask) > 0.6).cpu().data.numpy().astype(np.uint8)
+            pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
 
@@ -213,7 +213,7 @@ def test(tesample, model):
 
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
-            pred_np = mph.remove_small_holes(pred_np, min_size=600, connectivity=2)
+            pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2)
             # local_maxi = peak_local_max(raw, indices=False, min_distance=40, labels=pred_np)
             # markers = ndi.label(local_maxi)[0]
             # pred_np = mph.watershed(pred_np, markers, connectivity=2, watershed_line=True, mask=pred_np)
