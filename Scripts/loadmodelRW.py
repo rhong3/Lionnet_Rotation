@@ -217,12 +217,23 @@ def test(tesample, model):
             stk = stk + pred_np
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
+        io.imsave(output + '/' + teid + '_raw.tif', ((ott / ott.max()) * 255).astype(np.uint8))
         markers = np.zeros(ott.shape, dtype=np.uint)
-        markers[ott<0.5] = 1
-        markers[ott>0.75] = 2
-        ott = seg.random_walker(ott, markers, beta=10, mode='bf')
+        print(np.max(ott))
+        print(np.mean(ott))
+        print(np.min(ott))
+        markers[ott<25] = 1
+        markers[ott>230] = 2
+        print(np.mean(markers))
+        io.imsave(output + '/' + teid + '_mk.tif', ((markers / markers.max()) * 255).astype(np.uint8))
+        ott = seg.random_walker(ott, markers, beta=10, mode='cg')
+        ott = ott-1
+        io.imsave(output + '/' + teid + '_raw2.tif', ((ott / ott.max()) * 255).astype(np.uint8))
         ott = mph.remove_small_objects(ott.astype(bool), min_size=6000, connectivity=2).astype(np.uint8)
         ott = mph.remove_small_holes(ott, min_size=10000, connectivity=2).astype(np.uint8)
+        print(np.mean(ott))
+        print(np.max(ott))
+        print(np.min(ott))
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 
