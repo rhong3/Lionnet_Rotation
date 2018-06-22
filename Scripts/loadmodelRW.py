@@ -222,8 +222,8 @@ def test(tesample, model):
         print(np.max(ott))
         print(np.mean(ott))
         print(np.min(ott))
-        markers[ott<25] = 1
-        markers[ott>230] = 2
+        markers[ott<125] = 1
+        markers[ott>200] = 2
         print(np.mean(markers))
         io.imsave(output + '/' + teid + '_mk.tif', ((markers / markers.max()) * 255).astype(np.uint8))
         ott = seg.random_walker(ott, markers, beta=10, mode='cg')
