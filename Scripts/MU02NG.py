@@ -633,7 +633,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
                         else:
                             imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
                                    ((pred_np / pred_np.max()) * 255).astype(np.uint8))
-                    break
+                break
 
     # Loss figures
     plt.plot(losslists)
