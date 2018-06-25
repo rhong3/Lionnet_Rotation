@@ -197,7 +197,8 @@ def test(tesample, model, mode):
             pred_np = (F.sigmoid(pred_mask) > 0.5).cpu().data.numpy().astype(np.uint8)
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
-            pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2)
+            if mode == 'nuke':
+                pred_np = mph.remove_small_holes(pred_np, min_size=10000, connectivity=2)
             ott[itt,:,:] = pred_np
         io.imsave(output + '/' + teid + mode + '.tif', ((ott/ott.max())*255).astype(np.uint8))
 
