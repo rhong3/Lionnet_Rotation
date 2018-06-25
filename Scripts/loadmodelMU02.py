@@ -199,14 +199,14 @@ def test(tesample, model, mode):
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2)
             ott[itt,:,:] = pred_np
-        io.imsave(output + '/' + teid + mode + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
+        io.imsave(output + '/' + teid + mode + '.tif', ((ott/ott.max())*255).astype(np.uint8))
 
 
 def cbtest(tesample):
     for itr in range(len(tesample['ID'])):
         teid = tesample['ID'][itr]
-        a = io.imread(output + '/' + teid + 'nuke_pred.tif')
-        b = io.imread(output + '/' + teid + 'gap_pred.tif')
+        a = io.imread(output + '/' + teid + 'nuke.tif')
+        b = io.imread(output + '/' + teid + 'gap.tif')
         pred = np.clip(a - b, 0, None)
         pred = mph.remove_small_objects(pred.astype(bool), min_size=60000, connectivity=2).astype(np.uint8)
         pred = mph.remove_small_holes(pred, min_size=1000000, connectivity=2)

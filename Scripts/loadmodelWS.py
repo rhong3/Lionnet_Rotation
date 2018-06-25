@@ -215,7 +215,7 @@ def test(tesample, model):
             # pred_np = mph.opening(pred_np, selem)
             pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2).astype(np.uint8)
             distance = ndi.distance_transform_edt(pred_np)
-            local_maxi = peak_local_max(distance, indices=False, threshold_abs=10, exclude_border=10, min_distance=50, labels=pred_np)
+            local_maxi = peak_local_max(distance, indices=False, threshold_abs=10, exclude_border=10, min_distance=100, labels=pred_np)
             markers = ndi.label(local_maxi)[0]
             pred_np = mph.watershed(-distance, markers, connectivity=2, watershed_line=True, mask=pred_np)
             pred_np = (pred_np > 0).astype(np.uint8)
