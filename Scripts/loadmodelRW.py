@@ -218,7 +218,7 @@ def test(tesample, model):
         io.imsave(output + '/' + teid + '_raw.tif', ((ott / ott.max()) * 255).astype(np.uint8))
         markers = np.zeros(ott.shape, dtype=np.uint)
         markers[ott<125] = 1
-        markers[ott>185] = 2
+        markers[ott>175] = 2
         io.imsave(output + '/' + teid + '_mk.tif', ((markers / markers.max()) * 255).astype(np.uint8))
         ott = seg.random_walker(ott, markers, beta=10, mode='cg')
         ott = ott-1
