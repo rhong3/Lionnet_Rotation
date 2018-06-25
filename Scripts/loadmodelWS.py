@@ -214,15 +214,14 @@ def test(tesample, model):
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
             pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2).astype(np.uint8)
+            distance = ndi.distance_transform_edt(pred_np)
+            local_maxi = peak_local_max(distance, indices=False, threshold_abs=10, exclude_border=10, min_distance=50, labels=pred_np)
+            markers = ndi.label(local_maxi)[0]
+            pred_np = mph.watershed(-distance, markers, connectivity=2, watershed_line=True, mask=pred_np)
+            pred_np = (pred_np > 0).astype(np.uint8)
             stk = stk + pred_np
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
-        distance = ndi.distance_transform_edt(ott)
-        local_maxi = peak_local_max(distance, indices=False, threshold_abs=1, exclude_border=1, min_distance=20,
-                                    labels=ott)
-        markers = ndi.label(local_maxi)[0]
-        ott = mph.watershed(-distance, markers, connectivity=2, watershed_line=True, mask=ott)
-        ott = (ott > 0).astype(np.uint8)
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 

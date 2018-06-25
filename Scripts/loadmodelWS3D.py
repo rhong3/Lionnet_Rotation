@@ -205,28 +205,24 @@ def test(tesample, model):
             pred_mask = model(xt)
             # raw = scipy.misc.imresize(F.sigmoid(pred_mask).cpu().data.numpy()[0,0,:,:],(Da, Db))
             # raw = (raw/raw.max()*255).astype(np.uint8)
-            pred_np = F.sigmoid(pred_mask).cpu().data.numpy()
+            pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
             # print(np.shape(pred_np))
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
 
-            # pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
+            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
 
             # selem = mph.disk(2)
             # pred_np = mph.opening(pred_np, selem)
-            # pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2).astype(np.uint8)
+            pred_np = mph.remove_small_holes(pred_np, min_size=1000, connectivity=2).astype(np.uint8)
             stk = stk + pred_np
             ott[itt,:,:] = pred_np
         # pred_np = np.reshape(pred_np, [pred_np.shape[-4], pred_np.shape[-2], pred_np.shape[-1]])
-        io.imsave(output + '/' + teid + '_raw.tif', ((ott / ott.max()) * 255).astype(np.uint8))
-        markers = np.zeros(ott.shape, dtype=np.uint)
-        markers[ott<125] = 1
-        markers[ott>185] = 2
-        io.imsave(output + '/' + teid + '_mk.tif', ((markers / markers.max()) * 255).astype(np.uint8))
-        ott = seg.random_walker(ott, markers, beta=10, mode='cg')
-        ott = ott-1
-        io.imsave(output + '/' + teid + '_raw2.tif', ((ott / ott.max()) * 255).astype(np.uint8))
-        ott = mph.remove_small_objects(ott.astype(bool), min_size=6000, connectivity=2).astype(np.uint8)
-        ott = mph.remove_small_holes(ott, min_size=1000000, connectivity=2).astype(np.uint8)
+        distance = ndi.distance_transform_edt(ott)
+        local_maxi = peak_local_max(distance, indices=False, threshold_abs=1, exclude_border=1, min_distance=20,
+                                    labels=ott)
+        markers = ndi.label(local_maxi)[0]
+        ott = mph.watershed(-distance, markers, connectivity=2, watershed_line=True, mask=ott)
+        ott = (ott > 0).astype(np.uint8)
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
 
