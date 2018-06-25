@@ -215,6 +215,7 @@ def cbtest(tesample):
 
 sample = dataloader('test')
 
+
 model = Cuda(UNet())
 a = torch.load(md)
 model.load_state_dict(a['state_dict'])
