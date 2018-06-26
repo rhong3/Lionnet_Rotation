@@ -228,7 +228,7 @@ def test(tesample, model):
             im = mph.remove_small_objects(im.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
             im = mph.remove_small_holes(im, min_size=1000, connectivity=2).astype(np.uint8)
             ott[m, :, :] = im
-        ott = mph.remove_small_objects(ott.astype(bool), min_size=6000, connectivity=2).astype(np.uint8)
+        ott = mph.remove_small_objects(ott.astype(bool), min_size=600, connectivity=2).astype(np.uint8)
         ott = mph.remove_small_holes(ott, min_size=1000000, connectivity=2).astype(np.uint8)
         io.imsave(output + '/' + teid + '_pred.tif', ((ott/ott.max())*255).astype(np.uint8))
         io.imsave(output + '/' + teid + '_stk.tif', ((stk / stk.max()) * 255).astype(np.uint8))
