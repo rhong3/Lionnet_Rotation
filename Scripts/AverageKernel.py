@@ -20,24 +20,24 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'trainset_summary.csv', 'stage2_
 
 def dataloader(mode):
     try:
-        with open('../' + mode + '/out.pickle', 'rb') as f:
+        with open(mode + '/out.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
-        handles = image_ids_in('../' + mode)
+        handles = image_ids_in(mode)
         images = {}
         images['Image'] = []
         images['ID'] = []
         # images['Dim'] = []
         for i in handles:
-            im = io.imread('../' + mode + '/'+i)
+            im = io.imread(mode + '/'+i)
             images['Image'].append(im)
             j = i.split('.')[0]
             # io.imsave('Images/' +'norm_'+ j + '.tif', im)
             images['ID'].append(j)
 
-        with open('../' + mode + '/out.pickle', 'wb') as f:
+        with open(mode + '/out.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../' + mode + '/out.pickle', 'rb') as f:
+        with open(mode + '/out.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -50,12 +50,12 @@ def average(img, output, teid):
 
 
 def test(tesample, mode):
-    if not os.path.exists('../' + mode + '/AVE'):
+    if not os.path.exists(mode + '/AVE'):
         os.makedirs('../' + mode + '/AVE')
     for itr in range(len(tesample['ID'])):
         teim = tesample['Image'][itr]
         teid = tesample['ID'][itr]
-        average(teim, '../' + mode + '/AVE', teid)
+        average(teim, mode + '/AVE', teid)
 
 sample = dataloader(mode)
 
