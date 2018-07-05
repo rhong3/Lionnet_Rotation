@@ -46,7 +46,7 @@ def average(img, output, teid):
     result = ndimage.generic_filter(img, np.nanmean, size=3, mode='constant', cval=np.NaN)
     out = result>230
     out = out.astype(np.uint8)
-    io.imsave(output + '/' + teid + '_pred.tif', ((out / out.max()) * 255).astype(np.uint8))
+    io.imsave(output + '/' + teid + '.tif', ((out / out.max()) * 255).astype(np.uint8))
 
 
 def test(tesample, mode):
