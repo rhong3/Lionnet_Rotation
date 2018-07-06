@@ -51,7 +51,7 @@ def average(img, output, teid):
 
 def test(tesample, mode):
     if not os.path.exists(mode + '/AVE'):
-        os.makedirs('../' + mode + '/AVE')
+        os.makedirs(mode + '/AVE')
     for itr in range(len(tesample['ID'])):
         teim = tesample['Image'][itr]
         teid = tesample['ID'][itr]
