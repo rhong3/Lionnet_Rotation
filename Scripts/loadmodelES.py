@@ -204,8 +204,8 @@ def cbtest(tesample):
         a = io.imread(output + '/' + teid + 'nuke.tif')
         b = io.imread(output + '/' + teid + 'gap.tif')
         pred = np.clip(a - b, 0, None)
-        pred = mph.remove_small_objects(pred.astype(bool), min_size=60000, connectivity=2).astype(np.uint8)
-        pred = mph.remove_small_holes(pred, min_size=1000000, connectivity=2)
+        pred = mph.remove_small_objects(pred.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
+        pred = mph.remove_small_holes(pred, min_size=500, connectivity=2)
         io.imsave(output + '/' + teid + '_pred.tif', ((pred / pred.max()) * 255).astype(np.uint8))
 
 
