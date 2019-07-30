@@ -16,8 +16,16 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'dict.csv']):
 
 
 images = image_ids_in('20190607/')
+os.mkdir('20190607/tiffs')
 
 for i in images:
     im = tifffile.imread('20190607/{}.lsm'.format(i))
     print(i)
-    print(np.shape(im))
+    if np.shape(im)[1] == 1:
+        tif = im[0, 0, :, :, :]
+        print(np.shape(tif))
+    else:
+        tif = im[0, :, 0, :, :]
+        print(np.shape(tif))
+    tifffile.imsave('20190607/tiffs/{}.tif'.format(i), tif)
+
