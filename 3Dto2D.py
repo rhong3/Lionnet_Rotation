@@ -1,7 +1,6 @@
 import numpy as np
 import skimage as ski
 import os
-from PIL import Image
 
 
 # Get all images in the root directory
@@ -14,6 +13,7 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'dict.csv']):
             print(id.split('.t')[0])
             ids.append(id.split('.t')[0])
     return ids
+
 
 images = image_ids_in('Images/')
 
