@@ -194,7 +194,7 @@ def test(tesample, model, mode):
             pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
             pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
             if mode == 'nuke':
-                pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
+                pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=1)
             ott[itt,:,:] = pred_np
         io.imsave(output + '/' + teid + mode + '.tif', ((ott/ott.max())*255).astype(np.uint8))
 
@@ -206,7 +206,7 @@ def cbtest(tesample):
         b = io.imread(output + '/' + teid + 'gap.tif')
         pred = np.clip(a - b, 0, None)
         pred = mph.remove_small_objects(pred.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
-        pred = mph.remove_small_holes(pred, min_size=3000, connectivity=2)
+        pred = mph.remove_small_holes(pred, min_size=5000, connectivity=1)
         io.imsave(output + '/' + teid + '_pred.tif', ((pred / pred.max()) * 255).astype(np.uint8))
 
 
