@@ -137,31 +137,32 @@ def dataloader(mode='test'):
         with open(mode + '_norm2.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
-        handles = image_ids_in('ES_Images')
         images = {}
         images['Image'] = []
         images['ID'] = []
-        # images['Dim'] = []
-        for i in handles:
-            im = io.imread('ES_Images/'+i)
-            # print(np.shape(im))
-            # sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
-            # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
-            # im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
-            im = im / im.max() * 255
-            im = 255 - im
-            im_c = (im - im.mean())
-            im_c[im_c < 0] = 0
-            # im = (im_c / im_c.max() * 255)
-            im = np.invert(im.astype(np.uint8))
-            image = np.empty((im.shape[0], 3, im.shape[1], im.shape[2]), dtype='float32')
-            for j in range(im.shape[0]):
-                for k in range(3):
-                    image[j,k,:,:] = im[j,:,:]
-            images['Image'].append(image)
-            j = i.split('.')[0]
-            # io.imsave('Images/' +'norm_'+ j + '.tif', im)
-            images['ID'].append(j)
+        for ww in ['Rd1', 'Rd2', 'Rd3']:
+            handles = image_ids_in(ww)
+            # images['Dim'] = []
+            for i in handles:
+                im = io.imread(ww + '/'+i)
+                # print(np.shape(im))
+                # sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
+                # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
+                # im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
+                im = im / im.max() * 255
+                im = 255 - im
+                im_c = (im - im.mean())
+                im_c[im_c < 0] = 0
+                # im = (im_c / im_c.max() * 255)
+                im = np.invert(im.astype(np.uint8))
+                image = np.empty((im.shape[0], 3, im.shape[1], im.shape[2]), dtype='float32')
+                for j in range(im.shape[0]):
+                    for k in range(3):
+                        image[j,k,:,:] = im[j,:,:]
+                images['Image'].append(image)
+                j = i.split('.')[0]
+                # io.imsave('Images/' +'norm_'+ j + '.tif', im)
+                images['ID'].append(j)
 
         with open(mode + '_norm2.pickle', 'wb') as f:
             pickle.dump(images, f)
@@ -209,19 +210,20 @@ def cbtest(tesample):
         io.imsave(output + '/' + teid + '_pred.tif', ((pred / pred.max()) * 255).astype(np.uint8))
 
 
-sample = dataloader('test')
+if __name__ == '__main__':
+    sample = dataloader('test')
 
-model = Cuda(UNet())
-a = torch.load(md)
-model.load_state_dict(a['state_dict'])
+    model = Cuda(UNet())
+    a = torch.load(md)
+    model.load_state_dict(a['state_dict'])
 
-test(sample, model, 'nuke')
+    test(sample, model, 'nuke')
 
-model = Cuda(UNet())
-a = torch.load(gp)
-model.load_state_dict(a['state_dict'])
+    model = Cuda(UNet())
+    a = torch.load(gp)
+    model.load_state_dict(a['state_dict'])
 
-test(sample, model, 'gap')
+    test(sample, model, 'gap')
 
-cbtest(sample)
+    cbtest(sample)
 
