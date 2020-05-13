@@ -423,7 +423,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     pred_mask = model(x)
                     # BCE and dice loss
                     loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
-                    losslist.append(loss.data.numpy()[0])
+                    losslist.append(loss.data.numpy())
                     loss.backward()
                     # ppv metric
                     tr_metric = metric(F.sigmoid(pred_mask), y)
@@ -457,7 +457,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     pred_mask = model(x)
                     # BCE and dice loss
                     loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
-                    losslist.append(loss.data.numpy()[0])
+                    losslist.append(loss.data.numpy())
                     loss.backward()
                     # ppv metric
                     tr_metric = metric(F.sigmoid(pred_mask), y)
@@ -502,7 +502,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     pred_maskv = model(xv)
                     # dice and BCE loss
                     vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
-                    vlosslist.append(vloss.data.numpy()[0])
+                    vlosslist.append(vloss.data.numpy())
                     # ppv metric
                     va_metric = metric(F.sigmoid(pred_maskv), yv)
                     va_metric_list.append(va_metric)
@@ -532,7 +532,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
                     pred_maskv = model(xv)
                     # dice and BCE loss
                     vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
-                    vlosslist.append(vloss.data.numpy()[0])
+                    vlosslist.append(vloss.data.numpy())
                     # ppv metric
                     va_metric = metric(F.sigmoid(pred_maskv), yv)
                     va_metric_list.append(va_metric)
