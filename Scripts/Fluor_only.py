@@ -576,6 +576,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
                 'optimizer': opt.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/' + mode + 'F_unet')
+
         if va_score == np.max(PPVlist):
             print('Max PPV found:')
             print(va_score)
