@@ -209,6 +209,8 @@ def cbtest(tesample):
         pred = mph.remove_small_holes(pred, min_size=5000, connectivity=1)
         pred = mph.remove_small_holes(pred, min_size=5000, connectivity=2)
         io.imsave(output + '/' + teid + '_pred.tif', ((pred / pred.max()) * 255).astype(np.uint8))
+        os.remove(output + '/' + teid + 'nuke.tif')
+        os.remove(output + '/' + teid + 'gap.tif')
 
 
 if __name__ == '__main__':
