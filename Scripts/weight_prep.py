@@ -48,8 +48,9 @@ def get_weight(image_id, space="rgb"):
             mass = scipy.ndimage.measurements.center_of_mass(mask)
             massls.append([int(mass[0]), int(mass[1])])
         else:
-            print(image_id)
-            print(num_features)
+            mass = scipy.ndimage.measurements.center_of_mass(mask, labeled_array, range(1, num_features))
+            for massa in mass:
+                massls.append([int(massa[0]), int(massa[1])])
     massmp = np.ones((height, width), np.uint16)
     for index in range(0, len(massls)):
         massmp[massls[index][0], massls[index][1]] = 0
@@ -62,4 +63,3 @@ train_image_ids = image_ids_in(STAGE1_TRAIN)
 
 for im in train_image_ids:
     get_weight(im)
-
