@@ -1,18 +1,9 @@
 import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-import matplotlib.pyplot as plt
-import seaborn as sns
 import skimage.io
 import os
-import shutil
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from textwrap import wrap
 np.random.seed(1234)
 import scipy.misc
-import matplotlib.cm as cm
 from imageio import imread
-import sys
 
 
 STAGE1_TRAIN = "inputs/stage_1_train"
