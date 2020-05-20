@@ -4,14 +4,14 @@ np.random.seed(1234)
 import sys
 
 # This code is used to generate CSV files that contain full path to images, image sizes, and image classes.
-dir_path = '../../inputs/stage_1_train'
+dir_path = '../../stage_1_test'
 
 # ROOT = dir_path
 # ROOT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOT
 # ROOT_IMAGEPAD_PATTERN = "%s/{}/images/{}_pad.png" % ROOT
 # ROOT_LABEL_PATTERN = "%s/{}/label/Combined.png" % ROOT
 # ROOT_LABELPAD_PATTERN = "%s/{}/label/Combined_pad.png" % ROOT
-ROOTT = dir_path
+ROOTT = '../inputs/stage_1_test'
 # ROOTT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOTT
 ROOTT_IMAGEPAD_PATTERN = "%s/{}/images/{}_pad.png" % ROOTT
 ROOTT_GAP_PATTERN = "%s/{}/label/Gap_pad.png" % ROOTT
@@ -63,6 +63,6 @@ def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN,
 # vasample.to_csv('../inputs/stage_1_train/vasamples.csv', index = False, header = True)
 
 
-test = pd.read_csv(ROOTT+'/summary.csv', header = 0)
+test = pd.read_csv(dir_path+'/summary.csv', header = 0)
 tesample = read_lite(test, 'train', ROOTT, ROOTT_IMAGEPAD_PATTERN, ROOTT_LABELPAD_PATTERN, ROOTT_GAP_PATTERN, ROOTT_WT_PATTERN)
-tesample.to_csv(ROOTT+'/nttsamples.csv', index=False, header=True)
+tesample.to_csv(dir_path+'/nttsamples.csv', index=False, header=True)
