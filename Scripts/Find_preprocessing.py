@@ -141,7 +141,7 @@ def dataloader(mode='test'):
         images = {}
         images['Image'] = []
         images['ID'] = []
-        for ww in ['Rd1', 'Rd2', 'Rd3']:
+        for ww in ['testCLAHEFiltersForSegmentation']:
             handles = image_ids_in(ww)
             # images['Dim'] = []
             for i in handles:
@@ -156,10 +156,15 @@ def dataloader(mode='test'):
                 im_c[im_c < 0] = 0
                 # im = (im_c / im_c.max() * 255)
                 im = np.invert(im.astype(np.uint8))
-                image = np.empty((im.shape[0], 3, im.shape[1], im.shape[2]), dtype='float32')
-                for j in range(im.shape[0]):
+                try:
+                    image = np.empty((im.shape[0], 3, im.shape[1], im.shape[2]), dtype='float32')
+                    for j in range(im.shape[0]):
+                        for k in range(3):
+                            image[j,k,:,:] = im[j,:,:]
+                except IndexError:
+                    image = np.empty((1, 3, im.shape[0], im.shape[1]), dtype='float32')
                     for k in range(3):
-                        image[j,k,:,:] = im[j,:,:]
+                        image[0, k, :, :] = im[:, :]
                 images['Image'].append(image)
                 j = i.split('.')[0]
                 # io.imsave('Images/' +'norm_'+ j + '.tif', im)
@@ -201,7 +206,7 @@ def test(tesample, model, mode):
 
 
 def cbtest(tesample):
-    y = io.imread("20200519_filterTests/nuclei_segmentation_example_mask_cells2.tif")
+    y = io.imread("nuclei_segmentation_example_mask_cells2.tif")
     y = y / 255
     metric = []
     for itr in range(len(tesample['ID'])):
