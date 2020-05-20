@@ -115,10 +115,6 @@ def rescale_im(directory):
         except:
             continue
 
-
-
-
-
 dir_path = sys.argv[1]
 rescale_im(dir_path)
 

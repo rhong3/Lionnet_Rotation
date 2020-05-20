@@ -31,6 +31,7 @@ if not os.path.exists('../' + output):
 # Use cuda or not
 USE_CUDA = 1
 
+
 # Data loader
 def dataloader(handles, mode = 'train'):
     # If pickle exists, load it

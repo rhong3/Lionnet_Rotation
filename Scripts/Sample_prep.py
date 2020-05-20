@@ -4,7 +4,7 @@ np.random.seed(1234)
 import sys
 
 # This code is used to generate CSV files that contain full path to images, image sizes, and image classes.
-dir_path = sys.argv[1]
+dir_path = '../../inputs/stage_1_train'
 
 # ROOT = dir_path
 # ROOT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOT
@@ -15,10 +15,11 @@ ROOTT = dir_path
 # ROOTT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOTT
 ROOTT_IMAGEPAD_PATTERN = "%s/{}/images/{}_pad.png" % ROOTT
 ROOTT_GAP_PATTERN = "%s/{}/label/Gap_pad.png" % ROOTT
-ROOTT_LABELPAD_PATTERN = "%s/{}/label/MU_Combined_pad.png" % ROOTT
+ROOTT_LABELPAD_PATTERN = "%s/{}/label/Combined_pad.png" % ROOTT
+ROOTT_WT_PATTERN = "%s/{}/label/WT_Combined_pad.png" % ROOTT
 
 
-def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN, root_GAP_PATTERN):
+def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN, root_GAP_PATTERN, root_WT_PATTERN):
     sample = []
     for index, row in summary.iterrows():
         ls = []
@@ -35,17 +36,19 @@ def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN,
         image_path = root_IMAGEPAD_PATTERN.format(id, id)
         label_path = root_LABELPAD_PATTERN.format(id)
         gap_path = root_GAP_PATTERN.format(id)
+        WT_path = root_WT_PATTERN.format(id)
         ls.append(type)
         ls.append(image_path)
         if mode == 'train':
             ls.append(label_path)
             ls.append(gap_path)
+            ls.append(WT_path)
         ls.append(W)
         ls.append(H)
         ls.append(id)
         sample.append(ls)
     if mode == 'train':
-        df = pd.DataFrame(np.array(sample), columns=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
+        df = pd.DataFrame(np.array(sample), columns=['Type', 'Image', 'Label', 'Gap', 'Weight', 'Width', 'Height', 'ID'])
     else:
         df = pd.DataFrame(np.array(sample), columns=['Type', 'Image', 'Width', 'Height', 'ID'])
     return df
@@ -61,5 +64,5 @@ def read_lite(summary, mode, root, root_IMAGEPAD_PATTERN, root_LABELPAD_PATTERN,
 
 
 test = pd.read_csv(ROOTT+'/summary.csv', header = 0)
-tesample = read_lite(test, 'train', ROOTT, ROOTT_IMAGEPAD_PATTERN, ROOTT_LABELPAD_PATTERN, ROOTT_GAP_PATTERN)
-tesample.to_csv(ROOTT+'/musamples.csv', index=False, header=True)
+tesample = read_lite(test, 'train', ROOTT, ROOTT_IMAGEPAD_PATTERN, ROOTT_LABELPAD_PATTERN, ROOTT_GAP_PATTERN, ROOTT_WT_PATTERN)
+tesample.to_csv(ROOTT+'/nttsamples.csv', index=False, header=True)
