@@ -149,11 +149,11 @@ def dataloader(handles, mode = 'train'):
         plt.figure(0)
         plt.hist(noiselist, bins=8)
         plt.title(mode+' noise stdiv distribution')
-        plt.savefig('../inputs/mupickles/'+mode+'_noise.png')
+        plt.savefig('../inputs/flpickles/'+mode+'_noise.png')
 
-        with open("../inputs/mupickles/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/flpickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/mupickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/flpickles/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -578,10 +578,10 @@ def train(bs, sample, vasample, ep, ilr, mode):
 
 if __name__ == '__main__':
     # Read in files containing paths to training, validation, and testing images
-    tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
+    tr = pd.read_csv('../inputs/stage_1_train/nttsamples.csv', header=0,
                            usecols=['Type', 'Image', 'Label', 'Gap', 'Weight', 'Width', 'Height', 'ID'])
     tr = tr.loc[tr['Type'] == 'fluorescence']
-    va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
+    va = pd.read_csv('../inputs/stage_1_test/nttsamples.csv', header=0,
                            usecols=['Type', 'Image', 'Label', 'Gap', 'Weight', 'Width', 'Height', 'ID'])
     va = va.loc[va['Type'] == 'fluorescence']
 
