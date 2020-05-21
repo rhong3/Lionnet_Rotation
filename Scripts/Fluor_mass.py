@@ -145,11 +145,11 @@ def dataloader(handles, mode = 'train'):
         print(mode)
         print('noise stdiv_mean:')
         print(noisemean)
-        # noiselist = np.sort(noiselist)
-        # plt.figure(0)
-        # plt.hist(noiselist, bins=8)
-        # plt.title(mode+' noise stdiv distribution')
-        # plt.savefig('../inputs/flpickles/'+mode+'_noise.png')
+        noiselist = np.sort(noiselist)
+        plt.figure(0)
+        plt.hist(noiselist, bins=8)
+        plt.title(mode+' noise stdiv distribution')
+        plt.savefig('../inputs/flpickles/'+mode+'_noise.png')
 
         with open("../inputs/flpickles/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
