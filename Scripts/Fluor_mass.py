@@ -1,3 +1,5 @@
+# New Weight distribution
+
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np  # linear algebra
