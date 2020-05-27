@@ -689,10 +689,10 @@ def cbtest(tesample, group):
 
 if __name__ == '__main__':
     # Read in files containing paths to training, validation, and testing images
-    tr = pd.read_csv('../inputs/stage_1_train/samples.csv', header=0,
+    tr = pd.read_csv('../inputs/stage_1_train/nttsamples.csv', header=0,
                            usecols=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
     tr = tr.loc[tr['Type'] == 'fluorescence']
-    va = pd.read_csv('../inputs/stage_1_test/samples.csv', header=0,
+    va = pd.read_csv('../inputs/stage_1_test/nttsamples.csv', header=0,
                            usecols=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
     va = va.loc[va['Type'] == 'fluorescence']
 
