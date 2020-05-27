@@ -4,14 +4,14 @@ np.random.seed(1234)
 import sys
 
 # This code is used to generate CSV files that contain full path to images, image sizes, and image classes.
-dir_path = '../../stage_1_test'
+dir_path = '../../stage_1_train'
 
 # ROOT = dir_path
 # ROOT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOT
 # ROOT_IMAGEPAD_PATTERN = "%s/{}/images/{}_pad.png" % ROOT
 # ROOT_LABEL_PATTERN = "%s/{}/label/Combined.png" % ROOT
 # ROOT_LABELPAD_PATTERN = "%s/{}/label/Combined_pad.png" % ROOT
-ROOTT = '../inputs/stage_1_test'
+ROOTT = '../inputs/stage_1_train'
 # ROOTT_IMAGE_PATTERN = "%s/{}/images/{}.png" % ROOTT
 ROOTT_IMAGEPAD_PATTERN = "%s/{}/images/{}_pad.png" % ROOTT
 ROOTT_GAP_PATTERN = "%s/{}/label/Gap_pad.png" % ROOTT

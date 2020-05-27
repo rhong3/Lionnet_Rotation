@@ -13,6 +13,7 @@ STAGE1_TRAIN = "../inputs/"+dd
 STAGE1_TRAIN_IMAGE_PATTERN = "%s/{}/images/{}.png" % STAGE1_TRAIN
 STAGE1_TRAIN_MASK_PATTERN = "%s/{}/masks/*.png" % STAGE1_TRAIN
 
+
 # Get image names
 def image_ids_in(root_dir, ignore=['.DS_Store', 'summary.csv', 'stage1_train_labels.csv', 'vsamples.csv', 'stage1_solution.csv', 'samples.csv']):
     ids = []
@@ -34,6 +35,7 @@ def read_image(image_id, space="rgb"):
     if space == "hsv":
         image = skimage.color.rgb2hsv(image)
     return image
+
 
 # Get image width, height and combine masks available.
 def read_image_labels(image_id, space="rgb"):
@@ -58,6 +60,7 @@ def read_image_labels(image_id, space="rgb"):
         pass
     scipy.misc.imsave(STAGE1_TRAIN+'/'+image_id+'/label/DL_Combined.png', labels)
     return labels
+
 
 train_image_ids = image_ids_in(STAGE1_TRAIN)
 
