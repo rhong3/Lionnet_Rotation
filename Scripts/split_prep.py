@@ -27,7 +27,7 @@ for i in range(1, 8):
         except FileExistsError:
             pass
 
-        io.imsave('../stage_1_train/C1-FB323A_CSC_Rd1_{}_{}/images/C1-FB323A_CSC_Rd1_{}_{}.png'.
+        io.imsave('../stage_1_train/C1-FB323A_CSC_Rd1_{}_{}/images/C1-FB323A_CSC_Rd1_{}_{}_pad.png'.
                   format(str(i), str(j+1), str(i), str(j+1)), image[j, :, :])
         io.imsave('../stage_1_train/C1-FB323A_CSC_Rd1_{}_{}/label/Combined_pad.png'.
                   format(str(i), str(j+1), str(i), str(j+1)), label[j, :, :])
