@@ -375,6 +375,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
     PPVlist = []
 
     for epoch in range(ep):
+        print(epoch, flush=True)
         # Learning rate
         lr = init_lr * lr_dec
         order = np.arange(rows_trn)
