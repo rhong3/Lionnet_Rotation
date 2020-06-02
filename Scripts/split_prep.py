@@ -22,7 +22,7 @@ for i in range(1, 18):
     except FileNotFoundError:
         continue
     if len(np.shape(label)) > 3:
-        label = label[:, :, :, 0]
+        label = (label[:, :, :, 0] / 256).astype('uint8')
     for j in range(np.shape(image)[0]):
         try:
             os.mkdir('../stage_1_train/C1-FB323A_CSC_Rd1_{}_{}'.format(str(i), str(j+1)))
