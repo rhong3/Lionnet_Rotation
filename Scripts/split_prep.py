@@ -11,9 +11,18 @@ sum = pd.read_csv("../stage_1_train/summary.csv",
                   usecols=["image_id", "width", "height", "total_masks", "hsv_dominant", "hsv_cluster"])
 new = []
 
-for i in range(1, 8):
-    image = io.imread("../C1-FB323A_CSC_Rd1 #0{}.tif".format(str(i)))
-    label = io.imread("../ManualNuclei_C2-FB323A_CSC_Rd1 #0{}.tif".format(str(i)))
+for i in range(1, 18):
+    if i < 10:
+        ptt = "0"+str(i)
+    else:
+        ptt = str(i)
+    try:
+        image = io.imread("../C1-FB323A_CSC_Rd1 #{}.tif".format(ptt))
+        label = io.imread("../ManualNuclei_C2-FB323A_CSC_Rd1 #{}.tif".format(ptt))
+    except FileNotFoundError:
+        continue
+    if len(np.shape(label)) > 3:
+        label = label[:, :, :, 0]
     for j in range(np.shape(image)[0]):
         try:
             os.mkdir('../stage_1_train/C1-FB323A_CSC_Rd1_{}_{}'.format(str(i), str(j+1)))
@@ -57,4 +66,5 @@ for i in range(1, 8):
 
 newpd = pd.DataFrame(new, columns=["image_id", "width", "height", "total_masks", "hsv_dominant", "hsv_cluster"])
 newpd = pd.concat([sum, newpd])
+newpd = newpd.drop_duplicates(subset=["image_id"])
 newpd.to_csv("../stage_1_train/summary.csv", index=True)
