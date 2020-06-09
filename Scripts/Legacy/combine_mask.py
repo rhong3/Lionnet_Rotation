@@ -10,6 +10,7 @@ STAGE1_TRAIN = "inputs/stage_1_train"
 STAGE1_TRAIN_IMAGE_PATTERN = "%s/{}/images/{}.png" % STAGE1_TRAIN
 STAGE1_TRAIN_MASK_PATTERN = "%s/{}/masks/*.png" % STAGE1_TRAIN
 
+
 # Get image names
 def image_ids_in(root_dir, ignore=['.DS_Store', 'summary.csv', 'stage1_train_labels.csv']):
     ids = []

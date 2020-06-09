@@ -11,7 +11,7 @@ sum = pd.read_csv("../stage_1_train/summary.csv",
                   usecols=["image_id", "width", "height", "total_masks", "hsv_dominant", "hsv_cluster"])
 new = []
 
-for i in range(1, 18):
+for i in range(1, 24):
     if i < 10:
         ptt = "0"+str(i)
     else:
