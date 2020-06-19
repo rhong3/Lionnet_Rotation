@@ -4,16 +4,20 @@ import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
 np.random.seed(1234)
 import torch
+import torch.nn as nn
 from torch.autograd import Variable
-from imageio import imread, imsave
+import skimage.io as io
 from torch.nn import functional as F
 from torch.nn import init
+import torchvision.transforms as transforms
+from torch.utils.data import Dataset, DataLoader
 from skimage.morphology import label
 import matplotlib.pyplot as plt
 import sys
 import os
 import pickle
 import time
+from PIL import Image
 import skimage.morphology as mph
 from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
                                  denoise_wavelet, estimate_sigma)
@@ -31,130 +35,41 @@ if not os.path.exists('../' + output):
 # Use cuda or not
 USE_CUDA = 1
 
-# Data loader
-def dataloader(handles, mode = 'train'):
-    # If pickle exists, load it
-    try:
-        with open('../inputs/flpickles/' + mode + '.pickle', 'rb') as f:
-            images = pickle.load(f)
-    except:
-        images = {}
-        images['Image'] = []
-        images['Label'] = []
-        images['Gap'] = []
-        images['ID'] = []
-        images['Dim'] = []
-        noiselist = []
-        # For each image
-        for idx, row in handles.iterrows():
-            im = imread(row['Image'])
-            sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
-            noiselist.append(sigma_est)
-            # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
-            im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
-            # Normalization
-            im = im / im.max() * 255
-            im_aug = []
-            shape = im.shape[0]
-            # Training set will augment
-            if mode == 'train':
-                ima = np.rot90(im)
-                imb = np.rot90(ima)
-                imc = np.rot90(imb)
-                imd = np.fliplr(im)
-                ime = np.flipud(im)
-            # rearrange channels
-            image = np.empty((3, shape, shape), dtype='float32')
-            for i in range(3):
-                image[i,:,:] = im[:,:,i]
-            im = image
-            im_aug.append(im)
-            if mode == 'train':
-                for i in range(3):
-                    image[i, :, :] = ima[:, :, i]
-                ima = image
-                for i in range(3):
-                    image[i, :, :] = imb[:, :, i]
-                imb = image
-                for i in range(3):
-                    image[i, :, :] = imc[:, :, i]
-                imc = image
-                for i in range(3):
-                    image[i, :, :] = imd[:, :, i]
-                imd = image
-                for i in range(3):
-                    image[i, :, :] = ime[:, :, i]
-                ime = image
-                im_aug.append(ima)
-                im_aug.append(imb)
-                im_aug.append(imc)
-                im_aug.append(imd)
-                im_aug.append(ime)
-            images['Image'].append(np.array(im_aug))
+train_transformer = transforms.Compose([
+    transforms.ColorJitter(brightness=0.35, contrast=0.5, saturation=0.5, hue=0.35),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomVerticalFlip(),
+    transforms.RandomRotation((-180, 180), resample=False, expand=False, center=None),
+    transforms.ToTensor(),
+])
 
-            if mode != 'test':
-                la_aug = []
-                gap_aug = []
-                la = imread(row['Label'])
-                gap = imread(row['Gap'])
-                # Augment for label
-                if mode == 'train':
-                    laa = np.rot90(la)
-                    lab = np.rot90(laa)
-                    lac = np.rot90(lab)
-                    lad = np.fliplr(la)
-                    lae = np.flipud(la)
-                    gapa = np.rot90(gap)
-                    gapb = np.rot90(gapa)
-                    gapc = np.rot90(gapb)
-                    gapd = np.fliplr(gap)
-                    gape = np.flipud(gap)
-                la = np.reshape(la, [1, la.shape[0], la.shape[1]])
-                la_aug.append(la)
-                gap = np.reshape(gap, [1, gap.shape[0], gap.shape[1]])
-                gap_aug.append(gap)
-                if mode == 'train':
-                    laa = np.reshape(laa, [1, laa.shape[0], laa.shape[1]])
-                    lab = np.reshape(lab, [1, lab.shape[0], lab.shape[1]])
-                    lac = np.reshape(lac, [1, lac.shape[0], lac.shape[1]])
-                    lad = np.reshape(lad, [1, lad.shape[0], lad.shape[1]])
-                    lae = np.reshape(lae, [1, lae.shape[0], lae.shape[1]])
-                    la_aug.append(laa)
-                    la_aug.append(lab)
-                    la_aug.append(lac)
-                    la_aug.append(lad)
-                    la_aug.append(lae)
-                    gapa = np.reshape(gapa, [1, gapa.shape[0], gapa.shape[1]])
-                    gapb = np.reshape(gapb, [1, gapb.shape[0], gapb.shape[1]])
-                    gapc = np.reshape(gapc, [1, gapc.shape[0], gapc.shape[1]])
-                    gapd = np.reshape(gapd, [1, gapd.shape[0], gapd.shape[1]])
-                    gape = np.reshape(gape, [1, gape.shape[0], gape.shape[1]])
-                    gap_aug.append(gapa)
-                    gap_aug.append(gapb)
-                    gap_aug.append(gapc)
-                    gap_aug.append(gapd)
-                    gap_aug.append(gape)
-                images['Label'].append(np.array(la_aug))
-                images['Gap'].append(np.array(gap_aug))
-            # For test set, save dimension for post processing
-            elif mode == 'test':
-                images['Dim'].append([(row['Width'], row['Height'])])
-            images['ID'].append(row['ID'])
-        noisemean = np.mean(noiselist)
-        print(mode)
-        print(' noise stdiv_mean:')
-        print(noisemean)
-        noiselist = np.sort(noiselist)
-        plt.figure(0)
-        plt.hist(noiselist, bins=8)
-        plt.title(mode+' noise stdiv distribution')
-        plt.savefig('../inputs/flpickles/'+mode+'_noise.png')
+val_transformer = transforms.Compose([
+    transforms.ToTensor(),
+])
 
-        with open("../inputs/flpickles/" + mode + '.pickle', 'wb') as f:
-            pickle.dump(images, f)
-        with open('../inputs/flpickles/' + mode + '.pickle', 'rb') as f:
-            images = pickle.load(f)
-    return images
+
+class DataSet(Dataset):
+    def __init__(self, datadir, transform=None):
+        self.data_dir = datadir
+        self.transform = transform
+        self.imglist = pd.read_csv(self.data_dir, header=0).values.tolist()
+
+    def __len__(self):
+        return len(self.imglist)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        image = Image.open(self.imglist[idx][1])
+        label = Image.open(self.imglist[idx][2])
+        gap = Image.open(self.imglist[idx][3])
+
+        if self.transform:
+            image = self.transform(image)
+        sample = {'img': image,
+                  'label': label,
+                  'gap': gap}
+        return sample
 
 
 # UNet model
@@ -353,295 +268,152 @@ def metric(y_pred, target):
 
 
 # Training and validation method
-def train(bs, sample, vasample, ep, ilr, mode):
+def train(tr_dir, va_dir, bs, ep, ilr, mode):
+
+    try:
+        trs = DataSet(str(tr_dir + '/samples.csv'), transform=train_transformer)
+        vas = DataSet(str(va_dir + '/samples.csv'), transform=val_transformer)
+    except FileNotFoundError:
+        trs = DataSet(str(tr_dir + '/samples.csv'), transform=train_transformer)
+        vas = DataSet(str(va_dir + '/samples.csv'), transform=val_transformer)
+
+    train_loader = DataLoader(trs, batch_size=bs, drop_last=False, shuffle=True)
+    val_loader = DataLoader(vas, batch_size=bs, drop_last=False, shuffle=False)
+
     # Initialize learning rate decay and learning rate
-    lr_dec = 1
     init_lr = ilr
     # model
     model = Cuda(UNet())
     # initialize weight
     init_weights(model)
     # optimizer
-    opt = torch.optim.Adam(model.parameters(), lr=init_lr)
-    opt.zero_grad()
-    # train and validation samples
-    rows_trn = len(sample['Label'])
-    rows_val = len(vasample['Label'])
-    # Batch per epoch
-    batches_per_epoch = rows_trn // bs
-    losslists = []
-    vlosslists = []
-    Fscorelist = []
-    PPVlist = []
+    optimizer = torch.optim.Adam(model.parameters(), lr=init_lr)
+    trlosslist = []
+    valosslist = []
+    tr_metric_list = []
+    va_metric_list = []
+    tr_F_list = []
+    va_F_list = []
 
     for epoch in range(ep):
-        print(epoch, flush=True)
-        # Learning rate
-        lr = init_lr * lr_dec
-        order = np.arange(rows_trn)
-        losslist = []
-        tr_metric_list = []
-        va_metric_list = []
-        tr_F_list = []
-        va_F_list = []
-        for itr in range(batches_per_epoch):
-            rows = order[itr * bs: (itr + 1) * bs]
-            if itr + 1 == batches_per_epoch:
-                rows = order[itr * bs:]
-            # read in a batch
-            trim = sample['Image'][rows[0]]
-            trla = sample['Label'][rows[0]]
-            trga = sample['Gap'][rows[0]]
-            # read in augmented images
-            for iit in range(6):
-                trimm = trim[iit:iit + 1, :, :, :]
-                trlaa = trla[iit:iit + 1, :, :, :]
-                trgaa = trga[iit:iit + 1, :, :, :]
-                if mode == 'nuke':
-                    label_ratio = (trlaa > 0).sum() / (
-                                trlaa.shape[1] * trlaa.shape[2] * trlaa.shape[3] - (trlaa > 0).sum())
-                    # If smaller than 1, add weight to positive prediction
-                    if label_ratio < 1:
-                        add_weight = (trlaa[0, 0, :, :] / 255 + 1 / (1 / label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(
-                            weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If smaller than 1, add weight to negative prediction
-                    elif label_ratio > 1:
-                        add_weight = (trlaa[0, 0, :, :] / 255 + 1 / (label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(
-                            weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If equal to 1, no weight added
-                    elif label_ratio == 1:
-                        add_weight = (np.ones([1, 1, trlaa.shape[2], trlaa.shape[3]])) / 2 * 255
-                        loss_fn = torch.nn.BCEWithLogitsLoss(
-                            weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # Cuda and tensor inputs and label
-                    x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
-                    y = Cuda(Variable(torch.from_numpy(trlaa / 255).type(torch.FloatTensor)))
-                    # Prediction
-                    pred_mask = model(x)
-                    # BCE and dice loss
-                    loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
-                    losslist.append(loss.data.numpy())
-                    loss.backward()
-                    # ppv metric
-                    tr_metric = metric(F.sigmoid(pred_mask), y)
-                    tr_metric_list.append(tr_metric)
-                    tr_F = Fscore(F.sigmoid(pred_mask), y)
-                    tr_F_list.append(tr_F)
-                elif mode == 'gap':
-                    label_ratio = (trgaa > 0).sum() / (
-                                trgaa.shape[1] * trgaa.shape[2] * trgaa.shape[3] - (trgaa > 0).sum())
-                    # If smaller than 1, add weight to positive prediction
-                    if label_ratio < 1:
-                        add_weight = (trgaa[0, 0, :, :] / 255 + 1 / (1 / label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(
-                            weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If smaller than 1, add weight to negative prediction
-                    elif label_ratio > 1:
-                        add_weight = (trgaa[0, 0, :, :] / 255 + 1 / (label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(
-                            weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If equal to 1, no weight added
-                    elif label_ratio == 1:
-                        add_weight = (np.ones([1, 1, trgaa.shape[2], trgaa.shape[3]])) / 2 * 255
-                        loss_fn = torch.nn.BCEWithLogitsLoss(
-                            weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # Cuda and tensor inputs and label
-                    x = Cuda(Variable(torch.from_numpy(trimm).type(torch.FloatTensor)))
-                    y = Cuda(Variable(torch.from_numpy(trgaa / 255).type(torch.FloatTensor)))
-                    # Prediction
-                    pred_mask = model(x)
-                    # BCE and dice loss
-                    loss = loss_fn(pred_mask, y).cpu() + dice_loss(F.sigmoid(pred_mask), y)
-                    losslist.append(loss.data.numpy())
-                    loss.backward()
-                    # ppv metric
-                    tr_metric = metric(F.sigmoid(pred_mask), y)
-                    tr_metric_list.append(tr_metric)
-                    tr_F = Fscore(F.sigmoid(pred_mask), y)
-                    tr_F_list.append(tr_F)
-            opt.step()
-            opt.zero_grad()
+        train_loss = 0
+        validation_loss = 0
+        tr_metric_e = 0
+        va_metric_e = 0
+        tr_F_e = 0
+        va_F_e = 0
+        for batch_index, batch_samples in enumerate(train_loader):
+            if mode == 'nuke':
+                data, target = batch_samples['img'].to('cuda'), batch_samples['label'].to('cuda')
+                loss_fn = torch.nn.BCEWithLogitsLoss()
+                # Prediction
+                pred_mask = model(data)
+                # BCE
+                loss = loss_fn(pred_mask, target)
+                train_loss += loss
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                # ppv metric
+                tr_metric = metric(F.sigmoid(pred_mask), target)
+                tr_metric_list.append(tr_metric)
+                tr_F = Fscore(F.sigmoid(pred_mask), target)
+                tr_F_list.append(tr_F)
+            elif mode == 'gap':
+                data, target = batch_samples['img'].to('cuda'), batch_samples['gap'].to('cuda')
+                loss_fn = torch.nn.BCEWithLogitsLoss()
+                # Prediction
+                pred_mask = model(data)
+                # BCE
+                loss = loss_fn(pred_mask, target)
+                train_loss += loss
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                # ppv metric
+                tr_metric = metric(F.sigmoid(pred_mask), target)
+                tr_metric_e += tr_metric
+                tr_F = Fscore(F.sigmoid(pred_mask), target)
+                tr_F_e += tr_F
+        print('\nEpoch: {} \nTrain set: Average loss: {:.4f}\n Average PPV: {:.4f}\n Average F: {:.4f}\n'.format(
+            epoch, train_loss / len(train_loader.dataset), tr_metric_e / len(train_loader.dataset),
+            tr_F_e / len(train_loader.dataset)), flush=True)
+        trlosslist.append(train_loss / len(train_loader.dataset))
+        tr_metric_list.append(tr_metric_e / len(train_loader.dataset))
+        tr_F_list.append(tr_F_e / len(train_loader.dataset))
 
-        vlosslist = []
-        # For validation set
-        for itr in range(rows_val):
-            vaim = vasample['Image'][itr]
-            vala = vasample['Label'][itr]
-            vaga = vasample['Gap'][itr]
-            for iit in range(1):
-                # Load one batch
-                vaimm = vaim[iit:iit + 1, :, :, :]
-                valaa = vala[iit:iit + 1, :, :, :]
-                vagaa = vaga[iit:iit + 1, :, :, :]
-                if mode == 'nuke':
-                    # Calculate label positive and negative ratio
-                    label_ratio = (valaa>0).sum() / (valaa.shape[1]*valaa.shape[2] * valaa.shape[3] - (valaa>0).sum())
-                    # If smaller than 1, add weight to positive prediction
-                    if label_ratio < 1:
-                        add_weight = (valaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If smaller than 1, add weight to negative prediction
-                    elif label_ratio > 1:
-                        add_weight = (valaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If equal to 1, no weight added
-                    elif label_ratio == 1:
-                        add_weight = (np.ones([1,1,valaa.shape[2], valaa.shape[3]]))/2 * 255
-                        loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # cuda and tensor sample
-                    xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
-                    yv = Cuda(Variable(torch.from_numpy(valaa / 255).type(torch.FloatTensor)))
-                    # prediction
-                    pred_maskv = model(xv)
-                    # dice and BCE loss
-                    vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
-                    vlosslist.append(vloss.data.numpy())
-                    # ppv metric
-                    va_metric = metric(F.sigmoid(pred_maskv), yv)
-                    va_metric_list.append(va_metric)
-                    va_F = Fscore(F.sigmoid(pred_maskv), yv)
-                    va_F_list.append(va_F)
-                elif mode == 'gap':
-                    # Calculate label positive and negative ratio
-                    label_ratio = (vagaa>0).sum() / (vagaa.shape[1]*vagaa.shape[2] * vagaa.shape[3] - (vagaa>0).sum())
-                    # If smaller than 1, add weight to positive prediction
-                    if label_ratio < 1:
-                        add_weight = (vagaa[0,0,:,:] / 255 + 1 / (1 / label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If smaller than 1, add weight to negative prediction
-                    elif label_ratio > 1:
-                        add_weight = (vagaa[0,0,:,:] / 255 + 1 / (label_ratio - 1))
-                        add_weight = np.clip(add_weight / add_weight.max() * 255, 40, None)
-                        loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # If equal to 1, no weight added
-                    elif label_ratio == 1:
-                        add_weight = (np.ones([1,1,vagaa.shape[2], vagaa.shape[3]]))/2 * 255
-                        loss_fn = torch.nn.BCEWithLogitsLoss(weight=Cuda(torch.from_numpy(add_weight).type(torch.FloatTensor)))
-                    # cuda and tensor sample
-                    xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
-                    yv = Cuda(Variable(torch.from_numpy(vagaa / 255).type(torch.FloatTensor)))
-                    # prediction
-                    pred_maskv = model(xv)
-                    # dice and BCE loss
-                    vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(F.sigmoid(pred_maskv), yv)
-                    vlosslist.append(vloss.data.numpy())
-                    # ppv metric
-                    va_metric = metric(F.sigmoid(pred_maskv), yv)
-                    va_metric_list.append(va_metric)
-                    va_F = Fscore(F.sigmoid(pred_maskv), yv)
-                    va_F_list.append(va_F)
-        lossa = np.mean(losslist)
-        vlossa = np.mean(vlosslist)
-        tr_score = np.mean(tr_metric_list)
-        va_score = np.mean(va_metric_list)
-        tr_F_list = np.nan_to_num(tr_F_list)
-        va_F_list = np.nan_to_num(va_F_list)
-        tr_Fscore = np.mean(tr_F_list)
-        va_Fscore = np.mean(va_F_list)
-        # Print epoch summary
-        print(
-            'Epoch {:>3} |lr {:>1.5f} | Loss {:>1.5f} | VLoss {:>1.5f} | Train F1 {:>1.5f} | Val F1 {:>1.5f} | Train PPV {:>1.5f} | Val PPV {:>1.5f}'.format(
-                epoch + 1, lr, lossa, vlossa, tr_Fscore, va_Fscore, tr_score, va_score))
-        losslists.append(lossa)
-        vlosslists.append(vlossa)
-        Fscorelist.append(va_Fscore)
-        PPVlist.append(va_score)
+        for batch_index, batch_samples in enumerate(val_loader):
+            if mode == 'nuke':
+                data, target = batch_samples['img'].to('cuda'), batch_samples['label'].to('cuda')
+                loss_fn = torch.nn.BCEWithLogitsLoss()
+                # Prediction
+                pred_mask = model(data)
+                # BCE
+                loss = loss_fn(pred_mask, target)
+                validation_loss += loss
+                # ppv metric
+                va_metric = metric(F.sigmoid(pred_mask), target)
+                va_metric_list.append(va_metric)
+                va_F = Fscore(F.sigmoid(pred_mask), target)
+                va_F_list.append(va_F)
+            elif mode == 'gap':
+                data, target = batch_samples['img'].to('cuda'), batch_samples['gap'].to('cuda')
+                loss_fn = torch.nn.BCEWithLogitsLoss()
+                # Prediction
+                pred_mask = model(data)
+                # BCE
+                loss = loss_fn(pred_mask, target)
+                train_loss += loss
+                # ppv metric
+                va_metric = metric(F.sigmoid(pred_mask), target)
+                va_metric_e += va_metric
+                va_F = Fscore(F.sigmoid(pred_mask), target)
+                va_F_e += va_F
+        print('\nEpoch: {} \nValidation set: Average loss: {:.4f}\n Average PPV: {:.4f}\n Average F: {:.4f}\n'.format(
+            epoch, validation_loss / len(val_loader.dataset), va_metric_e / len(val_loader.dataset),
+            va_F_e / len(val_loader.dataset)), flush=True)
+        valosslist.append(validation_loss / len(val_loader.dataset))
+        va_metric_list.append(va_metric_e / len(val_loader.dataset))
+        va_F_list.append(va_F_e / len(val_loader.dataset))
 
-        for param_group in opt.param_groups:
-            param_group['lr'] = lr
         # Save models
-        if vlossa == np.min(vlosslists):
+        if validation_loss / len(val_loader.dataset) == np.min(valosslist):
             print('Min loss found:')
-            print(vlossa)
+            print(validation_loss / len(val_loader.dataset))
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
-                'optimizer': opt.state_dict(),
+                'optimizer': optimizer.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/' + mode + 'loss_unet')
-        if va_Fscore == np.max(Fscorelist):
+        if va_F_e / len(val_loader.dataset) == np.max(va_F_list):
             print('Max F found:')
-            print(va_Fscore)
+            print(va_F_e / len(val_loader.dataset))
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
-                'optimizer': opt.state_dict(),
+                'optimizer': optimizer.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/' + mode + 'F_unet')
 
-        if va_score == np.max(PPVlist):
+        if va_metric_e / len(val_loader.dataset) == np.max(va_metric_list):
             print('Max PPV found:')
-            print(va_score)
+            print(va_metric_e / len(val_loader.dataset))
             checkpoint = {
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
-                'optimizer': opt.state_dict(),
+                'optimizer': optimizer.state_dict(),
             }
             torch.save(checkpoint, '../' + output + '/' + mode + 'PPV_unet')
 
-        # if no change or increase in loss for consecutive 6 epochs, decrease learning rate by 10 folds
-        if epoch > 6:
-            if losscp(losslists[-5:]) or losscp(vlosslists[-5:]):
-                lr_dec = lr_dec / 10
         # if no change or increase in loss for consecutive 15 epochs, save validation predictions and stop training
         if epoch > 15:
-            if losscp(losslists[-15:]) or losscp(vlosslists[-15:]) or epoch+1 == ep:
-                for itr in range(rows_val):
-                    vaim = vasample['Image'][itr]
-                    for iit in range(1):
-                        vaimm = vaim[iit:iit + 1, :, :, :]
-                        xv = Cuda(Variable(torch.from_numpy(vaimm).type(torch.FloatTensor)))
-                        pred_maskv = model(xv)
-                        pred_np = (F.sigmoid(pred_maskv)).cpu().data.numpy()
-                        ppp = pred_np[0,0,:,:]
-                        pred_np = pred_np.round().astype(np.uint8)
-                        pred_np = pred_np[0, 0, :, :]
-                        pww = pred_np
-                        if not os.path.exists('../' + output + '/' + mode + 'validation/'):
-                            os.makedirs('../' + output + '/' + mode + 'validation/')
-                        if mode == 'nuke':
-                            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=30,
-                                                               connectivity=2).astype(np.uint8)
-                            pred_np = mph.remove_small_holes(pred_np.astype(bool), min_size=30, connectivity=2)
-                        elif mode == 'gap':
-                            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=15,
-                                                               connectivity=2).astype(np.uint8)
-                            selem = mph.disk(1)
-                            pred_np = mph.erosion(pred_np, selem)
-                        if np.max(pred_np) == np.min(pred_np):
-                            print('1st_BOOM!')
-                            print(vasample['ID'][itr])
-                            if np.max(pww) == np.min(pww):
-                                print('2nd_BOOM!')
-                                if ppp.max() == 0 or ppp.min() == 1:
-                                    print('3rd_BOOM!')
-                                    imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
-                                           ppp.astype(np.uint8))
-                                else:
-                                    ppp = (ppp / ppp.max()) * 1
-                                    ppp = (ppp > 0.95).astype(np.uint8)
-                                    imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
-                                           ((ppp / ppp.max()) * 255).astype(np.uint8))
-                            else:
-                                imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
-                                       ((pww / pww.max()) * 255).astype(np.uint8))
-                        else:
-                            imsave('../' + output + '/' + mode + 'validation/' + vasample['ID'][itr] + '.png',
-                                   ((pred_np / pred_np.max()) * 255).astype(np.uint8))
+            if losscp(trlosslist[-10:]) or losscp(valosslist[-10:]) or epoch+1 == ep:
                 break
 
     # Loss figures
-    plt.plot(losslists)
-    plt.plot(vlosslists)
+    plt.plot(trlosslist)
+    plt.plot(valosslist)
     plt.title('Train & Validation Loss')
     plt.legend(['Train', 'Validation'], loc='upper right')
     plt.savefig('../' + output + '/'+mode+'_loss.png')
@@ -652,12 +424,12 @@ def vatest(vasample):
         os.makedirs('../' + output + '/validation')
     for itr in range(len(vasample['ID'])):
         vaid = vasample['ID'][itr]
-        a = imread('../' + output + '/nukevalidation/' + vaid + '.png')
-        b = imread('../' + output + '/gapvalidation/' + vaid + '.png')
+        a = io.imread('../' + output + '/nukevalidation/' + vaid + '.png')
+        b = io.imread('../' + output + '/gapvalidation/' + vaid + '.png')
         out = np.clip(a - b, 0, None)
         out = mph.remove_small_objects(out, min_size=30, connectivity=1)
         out = mph.remove_small_holes(out, min_size=30, connectivity=2)
-        imsave('../' + output + '/validation/' + vaid + '_pred.png',
+        io.imsave('../' + output + '/validation/' + vaid + '_pred.png',
                ((out / out.max()) * 255).astype(np.uint8))
 
 
@@ -668,13 +440,13 @@ def cbtest(tesample, group):
         os.makedirs('../' + output + '/final_' + group)
     for itr in range(len(tesample['ID'])):
         teid = tesample['ID'][itr]
-        a = imread('../' + output + '/' + group + '/' + teid + '_nuke_pred.png')
-        b = imread('../' + output + '/' + group + '/' + teid + '_gap_pred.png')
+        a = io.imread('../' + output + '/' + group + '/' + teid + '_nuke_pred.png')
+        b = io.imread('../' + output + '/' + group + '/' + teid + '_gap_pred.png')
         out = np.clip(a - b, 0, None)
         out = mph.remove_small_objects(out, min_size=30, connectivity=1)
         out = mph.remove_small_holes(out, min_size=30, connectivity=2)
         out = ((out / out.max()) * 255).astype(np.uint8)
-        imsave('../' + output + '/final_' + group + '/' + teid + '_pred.png',
+        io.imsave('../' + output + '/final_' + group + '/' + teid + '_pred.png',
                ((out / out.max()) * 255).astype(np.uint8))
         # vectorize mask
         rle = list(prob_to_rles(out))
@@ -689,19 +461,7 @@ def cbtest(tesample, group):
 
 
 if __name__ == '__main__':
-    # Read in files containing paths to training, validation, and testing images
-    tr = pd.read_csv('../inputs/stage_1_train/nttsamples.csv', header=0,
-                           usecols=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
-    tr = tr.loc[tr['Type'] == 'fluorescence']
-    va = pd.read_csv('../inputs/stage_1_test/nttsamples.csv', header=0,
-                           usecols=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'ID'])
-    va = va.loc[va['Type'] == 'fluorescence']
-
-    # Load in images
-    trsample = dataloader(tr, 'train')
-    vasample = dataloader(va, 'val')
-
     # training
-    train(1, trsample, vasample, int(eps), float(LR), 'nuke')
-    train(1, trsample, vasample, int(eps), float(LR), 'gap')
+    train('../inputs/train3D', '../inputs/validation3D', 1, int(eps), float(LR), 'nuke')
+    train('../inputs/train3D', '../inputs/validation3D', 1, int(eps), float(LR), 'gap')
 

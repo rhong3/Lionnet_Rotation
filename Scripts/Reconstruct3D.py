@@ -1,6 +1,5 @@
 # Reconstruct manual labeled images as 3D training data
 
-
 import skimage.io as io
 import numpy as np
 import os
