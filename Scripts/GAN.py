@@ -73,6 +73,7 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+
 class Discriminator(nn.Module):
     def __init__(self, input_nc):
         super(Discriminator, self).__init__()
@@ -214,7 +215,7 @@ def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         torch.nn.init.normal(m.weight.data, 0.0, 0.02)
-    elif classname.find('BatchNorm2d') != -1:
+    elif classname.find('BatchNorm3d') != -1:
         torch.nn.init.normal(m.weight.data, 1.0, 0.02)
         torch.nn.init.constant(m.bias.data, 0.0)
 
