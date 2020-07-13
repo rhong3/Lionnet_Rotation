@@ -40,12 +40,12 @@ def sampling(img, lb, bt, dir, rand_num=100):
             io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*1024, j*1024), np.asarray(cutlb).astype(np.uint8))
     # random
     for m in range(rand_num):
-        x = random.randint(0, 2048)
-        y = random.randint(0, 2048)
-        cutim = img[:, x:x+1024, y:y+1024]
-        cutlb = lb[:, x:x+1024, y:y+1024]
-        io.imsave(dir + '/{}_{}_{}.tif'.format(bt, x, y), np.asarray(cutim).astype(np.uint8))
-        io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, x, y), np.asarray(cutlb).astype(np.uint8))
+        ht = random.randint(0, 2048)
+        wt = random.randint(0, 2048)
+        cutim = img[:, ht:ht+1024, wt:wt+1024]
+        cutlb = lb[:, ht:ht+1024, wt:wt+1024]
+        io.imsave(dir + '/{}_{}_{}.tif'.format(bt, ht, wt), np.asarray(cutim).astype(np.uint8))
+        io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, ht, wt), np.asarray(cutlb).astype(np.uint8))
 
 
 class ImageDataset(Dataset):
@@ -72,3 +72,4 @@ class ImageDataset(Dataset):
 
 image, label = construct('../train3D')
 sampling(image, label, 1, '../random_cut')
+
