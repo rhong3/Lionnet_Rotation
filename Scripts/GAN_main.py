@@ -7,7 +7,6 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
-from PIL import Image
 import torch
 
 from GAN import Generator
@@ -249,8 +248,8 @@ elif opt.mode == 'test':
         sys.stdout.write('\rGenerated images %04d of %04d' % (i + 1, len(dataloader)))
 
     sys.stdout.write('\n')
+
 else:
     print("Please check your input arguments!")
     sys.exit(0)
-
 ###################################
