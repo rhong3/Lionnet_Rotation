@@ -35,7 +35,6 @@ def sampling(img, lb, bt, dir, rand_num=91):
         for j in range(3):
             cutim = [img[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)]]
             cutlb = [lb[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)]]
-            print(np.shape(cutlb))
             io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*1024, j*1024), np.asarray(cutim).astype(np.uint8))
             io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*1024, j*1024), np.asarray(cutlb).astype(np.uint8))
     # random
