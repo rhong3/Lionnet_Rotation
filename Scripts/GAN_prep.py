@@ -3,7 +3,7 @@ import glob
 import random
 import os
 import numpy as np
-import skimage.io as io
+from skimage import io
 from torch.utils.data import Dataset
 import torch
 
