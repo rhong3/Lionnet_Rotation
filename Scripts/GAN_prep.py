@@ -67,6 +67,3 @@ class ImageDataset(Dataset):
     def __len__(self):
         return max(len(self.files_A), len(self.files_B))
 
-
-image, label = construct('../train3D')
-sampling(image, label, 1, '../Results/trial/data')

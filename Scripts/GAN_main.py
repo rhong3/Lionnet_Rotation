@@ -3,7 +3,6 @@
 import argparse
 import itertools
 import os, sys
-import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
