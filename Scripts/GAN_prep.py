@@ -5,7 +5,7 @@ import os
 import numpy as np
 import skimage.io as io
 from torch.utils.data import Dataset
-import torchvision.transforms as transforms
+import torch
 
 
 def construct(root):
@@ -48,20 +48,19 @@ def sampling(img, lb, bt, dir, rand_num=91):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, root, transforms_=None, unaligned=False):
-        self.transform = transforms.Compose(transforms_)
+    def __init__(self, root, unaligned=False):
         self.unaligned = unaligned
 
         self.files_A = sorted(glob.glob(os.path.join(root + '/data/*_im.tif')))
         self.files_B = sorted(glob.glob(os.path.join(root + '/data/*_lb.tif')))
 
     def __getitem__(self, index):
-        item_A = self.transform(io.imread(self.files_A[index % len(self.files_A)]))
+        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).long()
 
         if self.unaligned:
-            item_B = self.transform(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)]))
+            item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])/255).long()
         else:
-            item_B = self.transform(io.imread(self.files_B[index % len(self.files_B)]))
+            item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])/255).long()
 
         return {'Fl': item_A, 'Bn': item_B}
 

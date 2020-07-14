@@ -26,7 +26,7 @@ parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
 parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
 parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
 parser.add_argument('--dataroot', type=str, default='../Results/trial', help='root directory of the dataset')
-parser.add_argument('--n_data', type=int, default=1000, help='number of images of training (round to nearest 100)')
+parser.add_argument('--n_data', type=int, default=100, help='number of images of training (round to nearest 100)')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
 parser.add_argument('--decay_epoch', type=int, default=100,
                     help='epoch to start linearly decaying the learning rate to 0')
@@ -107,9 +107,8 @@ if opt.mode == 'train':
     fake_B_buffer = ReplayBuffer()
 
     # Dataset loader
-    transforms_ = [transforms.ToTensor(),
-                   transforms.Normalize(0.5, 0.5)]
-    dataloader = DataLoader(ImageDataset(opt.dataroot, transforms_=transforms_, unaligned=True),
+
+    dataloader = DataLoader(ImageDataset(opt.dataroot, unaligned=True),
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
@@ -226,9 +225,7 @@ elif opt.mode == 'test':
     input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
 
     # Dataset loader
-    transforms_ = [transforms.ToTensor(),
-                   transforms.Normalize(0.5, 0.5)]
-    dataloader = DataLoader(ImageDataset(opt.dataroot, transforms_=transforms_),
+    dataloader = DataLoader(ImageDataset(opt.dataroot),
                             batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
 
     ###### Testing######
