@@ -30,6 +30,7 @@ parser.add_argument('--lr', type=float, default=0.0002, help='initial learning r
 parser.add_argument('--decay_epoch', type=int, default=100,
                     help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--size', type=int, default=1024, help='size of the data crop (squared assumed)')
+parser.add_argument('--stack', type=int, default=7, help='depth of data crop')
 parser.add_argument('--input_nc', type=int, default=1, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=1, help='number of channels of output data')
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
@@ -97,8 +98,8 @@ if opt.mode == 'train':
 
     # Inputs & targets memory allocation
     Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
-    input_A = Tensor(opt.batchSize, opt.input_nc, opt.size, opt.size)
-    input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
+    input_A = Tensor(opt.batchSize, opt.input_nc, opt.stack, opt.size, opt.size)
+    input_B = Tensor(opt.batchSize, opt.output_nc, opt.stack, opt.size, opt.size)
     target_real = Variable(Tensor(opt.batchSize).fill_(1.0), requires_grad=False)
     target_fake = Variable(Tensor(opt.batchSize).fill_(0.0), requires_grad=False)
 
@@ -220,8 +221,8 @@ elif opt.mode == 'test':
 
     # Inputs & targets memory allocation
     Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
-    input_A = Tensor(opt.batchSize, opt.input_nc, opt.size, opt.size)
-    input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
+    input_A = Tensor(opt.batchSize, opt.input_nc, opt.stack, opt.size, opt.size)
+    input_B = Tensor(opt.batchSize, opt.output_nc, opt.stack, opt.size, opt.size)
 
     # Dataset loader
     dataloader = DataLoader(ImageDataset(opt.dataroot),
