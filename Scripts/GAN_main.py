@@ -40,10 +40,10 @@ parser.add_argument('--generator_A2B', type=str, default='../Results/trial/netG_
 parser.add_argument('--generator_B2A', type=str, default='../Results/trial/netG_B2A.pth',
                     help='Binary to Fluorescence generator checkpoint file')
 opt = parser.parse_args()
-print(opt)
+print(opt, flush=True)
 
 if torch.cuda.is_available() and not opt.cuda:
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+    print("WARNING: You have a CUDA device, so you should probably run with --cuda", flush=True)
 
 if not os.path.exists(opt.dataroot):
     os.makedirs(opt.dataroot)
@@ -247,6 +247,6 @@ elif opt.mode == 'test':
     sys.stdout.write('\n')
 
 else:
-    print("Please check your input arguments!")
+    print("Please check your input arguments!", flush=True)
     sys.exit(0)
 ###################################
