@@ -3,7 +3,7 @@ import glob
 import random
 import os
 import numpy as np
-from skimage import io
+from skimage import io, transform
 from torch.utils.data import Dataset
 import torch
 
@@ -33,16 +33,16 @@ def sampling(img, lb, bt, dir, rand_num=91):
     # original images
     for i in range(3):
         for j in range(3):
-            cutim = [img[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)]]
-            cutlb = [lb[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)]]
+            cutim = [transform.resize(img[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)], (7, 256, 256))*255]
+            cutlb = [transform.resize(lb[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)], (7, 256, 256))*255]
             io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*1024, j*1024), np.asarray(cutim).astype(np.uint8))
             io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*1024, j*1024), np.asarray(cutlb).astype(np.uint8))
     # random
     for m in range(rand_num):
         ht = random.randint(0, 2048)
         wt = random.randint(0, 2048)
-        cutim = [img[:, ht:ht+1024, wt:wt+1024]]
-        cutlb = [lb[:, ht:ht+1024, wt:wt+1024]]
+        cutim = [transform.resize(img[:, ht:ht+1024, wt:wt+1024], (7, 256, 256))*255]
+        cutlb = [transform.resize(lb[:, ht:ht+1024, wt:wt+1024], (7, 256, 256))*255]
         io.imsave(dir + '/{}_{}_{}_im.tif'.format(bt, ht, wt), np.asarray(cutim).astype(np.uint8))
         io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, ht, wt), np.asarray(cutlb).astype(np.uint8))
 
