@@ -31,18 +31,18 @@ def construct(root):
 
 def sampling(img, lb, bt, dir, rand_num=91):
     # original images
-    for i in range(3):
-        for j in range(3):
-            cutim = [transform.resize(img[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)], (7, 256, 256))*255]
-            cutlb = [transform.resize(lb[:, 1024*i:1024*(i+1), 1024*j:1024*(j+1)], (7, 256, 256))*255]
-            io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*1024, j*1024), np.asarray(cutim).astype(np.uint8))
-            io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*1024, j*1024), np.asarray(cutlb).astype(np.uint8))
+    for i in range(12):
+        for j in range(12):
+            cutim = [img[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
+            cutlb = [lb[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
+            io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*256, j*256), np.asarray(cutim).astype(np.uint8))
+            io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*256, j*256), np.asarray(cutlb).astype(np.uint8))
     # random
     for m in range(rand_num):
         ht = random.randint(0, 2048)
         wt = random.randint(0, 2048)
-        cutim = [transform.resize(img[:, ht:ht+1024, wt:wt+1024], (7, 256, 256))*255]
-        cutlb = [transform.resize(lb[:, ht:ht+1024, wt:wt+1024], (7, 256, 256))*255]
+        cutim = [img[:, ht:ht+256, wt:wt+256]]
+        cutlb = [lb[:, ht:ht+256, wt:wt+256]]
         io.imsave(dir + '/{}_{}_{}_im.tif'.format(bt, ht, wt), np.asarray(cutim).astype(np.uint8))
         io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, ht, wt), np.asarray(cutlb).astype(np.uint8))
 
@@ -54,14 +54,13 @@ class ImageDataset(Dataset):
         self.files_B = sorted(glob.glob(os.path.join(root + '/data/*_lb.tif')))
 
     def __getitem__(self, index):
-        print(self.files_A[index % len(self.files_A)])
-        print(self.files_B[random.randint(0, len(self.files_B) - 1)])
         item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).long()
-
         if self.unaligned:
             item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])/255).long()
         else:
             item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])/255).long()
+        print(item_A.shape)
+        print(item_B.shape)
 
         return {'Fl': item_A, 'Bn': item_B}
 
