@@ -29,7 +29,7 @@ parser.add_argument('--n_data', type=int, default=100, help='number of images of
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
 parser.add_argument('--decay_epoch', type=int, default=100,
                     help='epoch to start linearly decaying the learning rate to 0')
-parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
+parser.add_argument('--size', type=int, default=512, help='size of the data crop (squared assumed)')
 parser.add_argument('--stack', type=int, default=7, help='depth of data crop')
 parser.add_argument('--input_nc', type=int, default=1, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=1, help='number of channels of output data')

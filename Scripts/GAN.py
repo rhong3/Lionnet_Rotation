@@ -57,7 +57,7 @@ class Generator(nn.Module):
         # Upsampling
         out_features = in_features//2
         for _ in range(2):
-            model += [  nn.ConvTranspose3d(in_features, out_features, 3, stride=2, padding=1, output_padding=1),
+            model += [  nn.ConvTranspose3d(in_features, out_features, 3, stride=2, padding=0, output_padding=1),
                         nn.InstanceNorm3d(out_features),
                         nn.ReLU(inplace=True) ]
             in_features = out_features
