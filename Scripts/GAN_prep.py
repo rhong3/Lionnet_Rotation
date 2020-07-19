@@ -31,18 +31,18 @@ def construct(root):
 
 def sampling(img, lb, bt, dir, rand_num=91):
     # original images
-    for i in range(12):
-        for j in range(12):
-            cutim = [img[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
-            cutlb = [lb[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
-            io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*256, j*256), np.asarray(cutim).astype(np.uint8))
-            io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*256, j*256), np.asarray(cutlb).astype(np.uint8))
+    for i in range(6):
+        for j in range(6):
+            cutim = [img[:, 512*i:512*(i+1), 512*j:512*(j+1)]]
+            cutlb = [lb[:, 512*i:512*(i+1), 512*j:512*(j+1)]]
+            io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*512, j*512), np.asarray(cutim).astype(np.uint8))
+            io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*512, j*512), np.asarray(cutlb).astype(np.uint8))
     # random
     for m in range(rand_num):
         ht = random.randint(0, 2048)
         wt = random.randint(0, 2048)
-        cutim = [img[:, ht:ht+256, wt:wt+256]]
-        cutlb = [lb[:, ht:ht+256, wt:wt+256]]
+        cutim = [img[:, ht:ht+512, wt:wt+512]]
+        cutlb = [lb[:, ht:ht+512, wt:wt+512]]
         io.imsave(dir + '/{}_{}_{}_im.tif'.format(bt, ht, wt), np.asarray(cutim).astype(np.uint8))
         io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, ht, wt), np.asarray(cutlb).astype(np.uint8))
 
@@ -59,8 +59,6 @@ class ImageDataset(Dataset):
             item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])/255).long()
         else:
             item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])/255).long()
-        print(item_A.shape)
-        print(item_B.shape)
 
         return {'Fl': item_A, 'Bn': item_B}
 
