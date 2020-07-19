@@ -50,11 +50,12 @@ def sampling(img, lb, bt, dir, rand_num=91):
 class ImageDataset(Dataset):
     def __init__(self, root, unaligned=False):
         self.unaligned = unaligned
-
         self.files_A = sorted(glob.glob(os.path.join(root + '/data/*_im.tif')))
         self.files_B = sorted(glob.glob(os.path.join(root + '/data/*_lb.tif')))
 
     def __getitem__(self, index):
+        print(self.files_A[index % len(self.files_A)])
+        print(self.files_B[random.randint(0, len(self.files_B) - 1)])
         item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).long()
 
         if self.unaligned:

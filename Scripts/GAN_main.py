@@ -116,6 +116,7 @@ if opt.mode == 'train':
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):
+        print(epoch)
         for i, batch in enumerate(dataloader):
             # Set model input
             real_A = Variable(input_A.copy_(batch['Fl']))
