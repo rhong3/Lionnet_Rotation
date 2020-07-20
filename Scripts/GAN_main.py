@@ -26,9 +26,9 @@ parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
 parser.add_argument('--n_epochs', type=int, default=2, help='number of epochs of training')
 parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
 parser.add_argument('--dataroot', type=str, default='../Results/trial', help='root directory of the dataset')
-parser.add_argument('--n_data', type=int, default=100, help='number of images of training (round to nearest 100)')
+parser.add_argument('--n_data', type=int, default=200, help='number of images of training (round to nearest 200)')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
-parser.add_argument('--decay_epoch', type=int, default=100,
+parser.add_argument('--decay_epoch', type=int, default=1,
                     help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
 parser.add_argument('--stack', type=int, default=7, help='depth of data crop')
@@ -70,9 +70,9 @@ if opt.cuda:
 
 if opt.mode == 'train':
     # Data augmentation and prep
-    for numm in range(int(opt.n_data/100)):
+    for numm in range(int(opt.n_data/200)):
         bigimage, biglabel = construct('../train3D')
-        sampling(bigimage, biglabel, numm+1, opt.dataroot + '/data', rand_num=91)
+        sampling(bigimage, biglabel, numm+1, opt.dataroot + '/data', rand_num=56)
 
     netG_A2B.apply(weights_init_normal)
     netG_B2A.apply(weights_init_normal)

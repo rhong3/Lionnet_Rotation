@@ -29,7 +29,7 @@ def construct(root):
     return ic, il
 
 
-def sampling(img, lb, bt, dir, rand_num=91):
+def sampling(img, lb, bt, dir, rand_num=56):
     # original images
     for i in range(12):
         for j in range(12):
