@@ -7,6 +7,7 @@ from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 import torch
+import torch.nn.functional as F
 
 from GAN import Generator
 from GAN import Discriminator
@@ -116,7 +117,7 @@ if opt.mode == 'train':
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):
-        print(epoch)
+        print('epoch: ', epoch, flush=True)
         for i, batch in enumerate(dataloader):
             # Set model input
             real_A = Variable(input_A.copy_(batch['Fl']))
@@ -128,11 +129,11 @@ if opt.mode == 'train':
             # Identity loss
             # G_A2B(B) should equal B if real B is fed
             same_B = netG_A2B(real_B)
-            print(same_B.shape)
-            print(real_B.shape)
+            same_B = F.interpolate(same_B, [opt.stack, opt.size, opt.size])
             loss_identity_B = criterion_identity(same_B, real_B) * 5.0
             # G_B2A(A) should equal A if real A is fed
             same_A = netG_B2A(real_A)
+            same_A = F.interpolate(same_A, [opt.stack, opt.size, opt.size])
             loss_identity_A = criterion_identity(same_A, real_A) * 5.0
 
             # GAN loss
