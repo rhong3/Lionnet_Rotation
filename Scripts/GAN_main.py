@@ -139,10 +139,12 @@ if opt.mode == 'train':
             # GAN loss
             fake_B = netG_A2B(real_A)
             pred_fake = netD_B(fake_B)
+            pred_fake = torch.squeeze(pred_fake, 1)
             loss_GAN_A2B = criterion_GAN(pred_fake, target_real)
 
             fake_A = netG_B2A(real_B)
             pred_fake = netD_A(fake_A)
+            pred_fake = torch.squeeze(pred_fake, 1)
             loss_GAN_B2A = criterion_GAN(pred_fake, target_real)
 
             # Cycle loss
@@ -166,13 +168,13 @@ if opt.mode == 'train':
 
             # Real loss
             pred_real = netD_A(real_A)
-            pred_real = torch.squeeze(pred_real)
+            pred_real = torch.squeeze(pred_real, 1)
             loss_D_real = criterion_GAN(pred_real, target_real)
 
             # Fake loss
             fake_A = fake_A_buffer.push_and_pop(fake_A)
             pred_fake = netD_A(fake_A.detach())
-            pred_fake = torch.squeeze(pred_fake)
+            pred_fake = torch.squeeze(pred_fake, 1)
             loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
             # Total loss
@@ -187,13 +189,13 @@ if opt.mode == 'train':
 
             # Real loss
             pred_real = netD_B(real_B)
-            pred_real = torch.squeeze(pred_real)
+            pred_real = torch.squeeze(pred_real, 1)
             loss_D_real = criterion_GAN(pred_real, target_real)
 
             # Fake loss
             fake_B = fake_B_buffer.push_and_pop(fake_B)
             pred_fake = netD_B(fake_B.detach())
-            pred_fake = torch.squeeze(pred_fake)
+            pred_fake = torch.squeeze(pred_fake, 1)
             loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
             # Total loss
