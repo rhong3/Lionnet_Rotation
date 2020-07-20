@@ -28,7 +28,7 @@ parser.add_argument('--batchSize', type=int, default=1, help='size of the batche
 parser.add_argument('--dataroot', type=str, default='../Results/trial', help='root directory of the dataset')
 parser.add_argument('--n_data', type=int, default=200, help='number of images of training (round to nearest 200)')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
-parser.add_argument('--decay_epoch', type=int, default=1,
+parser.add_argument('--decay_epoch', type=int, default=0,
                     help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
 parser.add_argument('--stack', type=int, default=7, help='depth of data crop')
@@ -41,6 +41,8 @@ parser.add_argument('--generator_A2B', type=str, default='../Results/trial/netG_
 parser.add_argument('--generator_B2A', type=str, default='../Results/trial/netG_B2A.pth',
                     help='Binary to Fluorescence generator checkpoint file')
 opt = parser.parse_args()
+if opt.decay_epoch == 0:
+    opt.decay_epoch = int(opt.n_epochs/2)
 print(opt, flush=True)
 
 if torch.cuda.is_available() and not opt.cuda:
@@ -205,7 +207,7 @@ if opt.mode == 'train':
                         'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
                         'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)},
                        images={'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
-
+            print("\n", flush=True)
         # Update learning rates
         lr_scheduler_G.step()
         lr_scheduler_D_A.step()

@@ -106,9 +106,11 @@ class Discriminator(nn.Module):
 
 
 def tensor2image(tensor):
+    tensor = torch.squeeze(tensor)
+    tensor = torch.unsqueeze(tensor, 1)
     image = 127.5 * (tensor[0].cpu().float().numpy() + 1.0)
-    if image.shape[0] == 1:
-        image = np.tile(image, (3, 1, 1))
+    if image.shape[1] == 1:
+        image = np.tile(image, (1, 3, 1, 1))
     return image.astype(np.uint8)
 
 
@@ -147,13 +149,13 @@ class Logger():
         batches_left = self.batches_epoch * (self.n_epochs - self.epoch) + self.batches_epoch - self.batch
         sys.stdout.write('ETA: %s' % (datetime.timedelta(seconds=batches_left * self.mean_period / batches_done)))
 
-        # # Draw images
-        # for image_name, tensor in images.items():
-        #     if image_name not in self.image_windows:
-        #         self.image_windows[image_name] = self.viz.image(tensor2image(tensor.data), opts={'title': image_name})
-        #     else:
-        #         self.viz.image(tensor2image(tensor.data), win=self.image_windows[image_name],
-        #                        opts={'title': image_name})
+        # Draw images
+        for image_name, tensor in images.items():
+            if image_name not in self.image_windows:
+                self.image_windows[image_name] = self.viz.images(tensor2image(tensor.data), opts={'title': image_name})
+            else:
+                self.viz.images(tensor2image(tensor.data), win=self.image_windows[image_name],
+                               opts={'title': image_name})
 
         # End of epoch
         if (self.batch % self.batches_epoch) == 0:
