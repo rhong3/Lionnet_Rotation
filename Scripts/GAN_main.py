@@ -23,7 +23,7 @@ from GAN_prep import sampling
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', type=str, default='train', help='train or test')
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
-parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
+parser.add_argument('--n_epochs', type=int, default=2, help='number of epochs of training')
 parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
 parser.add_argument('--dataroot', type=str, default='../Results/trial', help='root directory of the dataset')
 parser.add_argument('--n_data', type=int, default=100, help='number of images of training (round to nearest 100)')
@@ -101,8 +101,8 @@ if opt.mode == 'train':
     Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
     input_A = Tensor(opt.batchSize, opt.input_nc, opt.stack, opt.size, opt.size)
     input_B = Tensor(opt.batchSize, opt.output_nc, opt.stack, opt.size, opt.size)
-    target_real = Variable(Tensor(opt.batchSize).fill_(1.0), requires_grad=False)
-    target_fake = Variable(Tensor(opt.batchSize).fill_(0.0), requires_grad=False)
+    target_real = Variable(Tensor(opt.batchSize, opt.output_nc).fill_(1.0), requires_grad=False)
+    target_fake = Variable(Tensor(opt.batchSize, opt.output_nc).fill_(0.0), requires_grad=False)
 
     fake_A_buffer = ReplayBuffer()
     fake_B_buffer = ReplayBuffer()
@@ -138,13 +138,13 @@ if opt.mode == 'train':
 
             # GAN loss
             fake_B = netG_A2B(real_A)
+            fake_B = F.interpolate(fake_B, [opt.stack, opt.size, opt.size])
             pred_fake = netD_B(fake_B)
-            pred_fake = torch.squeeze(pred_fake, 1)
             loss_GAN_A2B = criterion_GAN(pred_fake, target_real)
 
             fake_A = netG_B2A(real_B)
+            fake_A = F.interpolate(fake_A, [opt.stack, opt.size, opt.size])
             pred_fake = netD_A(fake_A)
-            pred_fake = torch.squeeze(pred_fake, 1)
             loss_GAN_B2A = criterion_GAN(pred_fake, target_real)
 
             # Cycle loss
@@ -168,13 +168,11 @@ if opt.mode == 'train':
 
             # Real loss
             pred_real = netD_A(real_A)
-            pred_real = torch.squeeze(pred_real, 1)
             loss_D_real = criterion_GAN(pred_real, target_real)
 
             # Fake loss
             fake_A = fake_A_buffer.push_and_pop(fake_A)
             pred_fake = netD_A(fake_A.detach())
-            pred_fake = torch.squeeze(pred_fake, 1)
             loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
             # Total loss
@@ -189,13 +187,11 @@ if opt.mode == 'train':
 
             # Real loss
             pred_real = netD_B(real_B)
-            pred_real = torch.squeeze(pred_real, 1)
             loss_D_real = criterion_GAN(pred_real, target_real)
 
             # Fake loss
             fake_B = fake_B_buffer.push_and_pop(fake_B)
             pred_fake = netD_B(fake_B.detach())
-            pred_fake = torch.squeeze(pred_fake, 1)
             loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
             # Total loss
@@ -204,7 +200,6 @@ if opt.mode == 'train':
 
             optimizer_D_B.step()
             ###################################
-
             # Progress report (http://localhost:8097)
             logger.log({'loss_G': loss_G, 'loss_G_identity': (loss_identity_A + loss_identity_B),
                         'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
