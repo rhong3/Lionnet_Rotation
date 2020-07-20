@@ -115,8 +115,8 @@ def tensor2image(tensor):
 
 
 class Logger():
-    def __init__(self, n_epochs, batches_epoch):
-        self.viz = Visdom()
+    def __init__(self, n_epochs, batches_epoch, outputfile):
+        self.viz = Visdom(server='bigpurple-ln1', log_to_filename=outputfile)
         self.n_epochs = n_epochs
         self.batches_epoch = batches_epoch
         self.epoch = 1
