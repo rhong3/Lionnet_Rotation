@@ -30,7 +30,7 @@ parser.add_argument('--n_data', type=int, default=100, help='number of images of
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
 parser.add_argument('--decay_epoch', type=int, default=100,
                     help='epoch to start linearly decaying the learning rate to 0')
-parser.add_argument('--size', type=int, default=512, help='size of the data crop (squared assumed)')
+parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
 parser.add_argument('--stack', type=int, default=7, help='depth of data crop')
 parser.add_argument('--input_nc', type=int, default=1, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=1, help='number of channels of output data')
@@ -117,7 +117,7 @@ if opt.mode == 'train':
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):
-        print('epoch: ', epoch, flush=True)
+        print('starting epoch: ', epoch+1, flush=True)
         for i, batch in enumerate(dataloader):
             # Set model input
             real_A = Variable(input_A.copy_(batch['Fl']))
@@ -147,9 +147,11 @@ if opt.mode == 'train':
 
             # Cycle loss
             recovered_A = netG_B2A(fake_B)
+            recovered_A = F.interpolate(recovered_A, [opt.stack, opt.size, opt.size])
             loss_cycle_ABA = criterion_cycle(recovered_A, real_A) * 10.0
 
             recovered_B = netG_A2B(fake_A)
+            recovered_B = F.interpolate(recovered_B, [opt.stack, opt.size, opt.size])
             loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
 
             # Total loss
@@ -164,11 +166,13 @@ if opt.mode == 'train':
 
             # Real loss
             pred_real = netD_A(real_A)
+            pred_real = torch.squeeze(pred_real)
             loss_D_real = criterion_GAN(pred_real, target_real)
 
             # Fake loss
             fake_A = fake_A_buffer.push_and_pop(fake_A)
             pred_fake = netD_A(fake_A.detach())
+            pred_fake = torch.squeeze(pred_fake)
             loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
             # Total loss
@@ -183,11 +187,13 @@ if opt.mode == 'train':
 
             # Real loss
             pred_real = netD_B(real_B)
+            pred_real = torch.squeeze(pred_real)
             loss_D_real = criterion_GAN(pred_real, target_real)
 
             # Fake loss
             fake_B = fake_B_buffer.push_and_pop(fake_B)
             pred_fake = netD_B(fake_B.detach())
+            pred_fake = torch.squeeze(pred_fake)
             loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
             # Total loss
