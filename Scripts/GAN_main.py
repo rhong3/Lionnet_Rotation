@@ -129,31 +129,33 @@ if opt.mode == 'train':
             # G_A2B(B) should equal B if real B is fed
             same_B = netG_A2B(real_B)
             same_B = F.interpolate(same_B, [opt.stack, opt.size, opt.size])
-            loss_identity_B = criterion_identity(same_B, real_B)
+            loss_identity_B = criterion_identity(same_B, real_B) * 5.0
             # G_B2A(A) should equal A if real A is fed
             same_A = netG_B2A(real_A)
             same_A = F.interpolate(same_A, [opt.stack, opt.size, opt.size])
-            loss_identity_A = criterion_identity(same_A, real_A)
+            loss_identity_A = criterion_identity(same_A, real_A) * 5.0
 
             # GAN loss
             fake_B = netG_A2B(real_A)
             fake_B = F.interpolate(fake_B, [opt.stack, opt.size, opt.size])
+            outfake_B = fake_B
             pred_fake = netD_B(fake_B)
             loss_GAN_A2B = criterion_GAN(pred_fake, target_real)
 
             fake_A = netG_B2A(real_B)
             fake_A = F.interpolate(fake_A, [opt.stack, opt.size, opt.size])
+            outfake_A = fake_A
             pred_fake = netD_A(fake_A)
             loss_GAN_B2A = criterion_GAN(pred_fake, target_real)
 
             # Cycle loss
             recovered_A = netG_B2A(fake_B)
             recovered_A = F.interpolate(recovered_A, [opt.stack, opt.size, opt.size])
-            loss_cycle_ABA = criterion_cycle(recovered_A, real_A)
+            loss_cycle_ABA = criterion_cycle(recovered_A, real_A) * 10.0
 
             recovered_B = netG_A2B(fake_A)
             recovered_B = F.interpolate(recovered_B, [opt.stack, opt.size, opt.size])
-            loss_cycle_BAB = criterion_cycle(recovered_B, real_B)
+            loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
 
             # Total loss
             loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB
@@ -203,7 +205,7 @@ if opt.mode == 'train':
             logger.log({'loss_G': loss_G, 'loss_G_identity': (loss_identity_A + loss_identity_B),
                         'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
                         'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)},
-                       images={'real_A': real_A, 'fake_B': fake_B, 'real_B': real_B, 'fake_A': fake_A })
+                       images={'real_A': real_A, 'fake_B': outfake_B, 'real_B': real_B, 'fake_A': outfake_A})
             print("\n", flush=True)
         # Update learning rates
         lr_scheduler_G.step()
