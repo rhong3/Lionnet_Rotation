@@ -152,14 +152,15 @@ class Logger():
 
         try:
             # Draw images
+            tensortemp = torch.empty(0)
             for image_name, tensor in images.items():
-                for ii in range(list(tensor.shape)[2]):
-                    if str(image_name+str(ii)) not in self.image_windows:
-                        self.image_windows[str(image_name+str(ii))] = self.viz.image(tensor2image(tensor.data)[ii, :, :, :],
-                                                                                     opts={'title': str(image_name+str(ii))})
-                    else:
-                        self.viz.image(tensor2image(tensor.data)[ii, :, :, :], win=self.image_windows[str(image_name+str(ii))],
-                                       opts={'title': str(image_name+str(ii))})
+                tensortemp = torch.cat([tensortemp, tensor], dim=0)
+            if 'images' not in self.image_windows:
+                self.image_windows['images'] = self.viz.image(tensor2image(tensortemp.data),
+                                                                             opts={'title': 'images', 'nrow': 4})
+            else:
+                self.viz.image(tensor2image(tensortemp.data), win=self.image_windows['images'],
+                               opts={'title': 'images', 'nrow': 4})
 
             # End of epoch
             if (self.batch % self.batches_epoch) == 0:
