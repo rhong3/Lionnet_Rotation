@@ -109,7 +109,7 @@ class Discriminator(nn.Module):
 def tensor2image(tensor):
     tensor = torch.squeeze(tensor)
     tensor = torch.unsqueeze(tensor, 1)
-    image = tensor.cpu().float().numpy()
+    image = np.clip(255 * (tensor.cpu().float().numpy()), 0, 255)
     if image.shape[1] == 1:
         image = np.tile(image, (1, 3, 1, 1))
     return image.astype(np.uint8)

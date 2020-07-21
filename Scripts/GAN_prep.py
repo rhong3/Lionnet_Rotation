@@ -64,11 +64,11 @@ class ImageDataset(Dataset):
         self.files_B = sorted(glob.glob(os.path.join(root + '/data/*_lb.tif')))
 
     def __getitem__(self, index):
-        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])).long()
+        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).float()
         if self.unaligned:
-            item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])).long()
+            item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])/255).float()
         else:
-            item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])).long()
+            item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])/255).float()
 
         return {'Fl': item_A, 'Bn': item_B}
 
