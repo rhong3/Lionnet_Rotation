@@ -3,8 +3,7 @@ import glob
 import random
 import os
 import numpy as np
-from skimage import io, transform
-from skimage.restoration import denoise_tv_chambolle
+from skimage import io
 from torch.utils.data import Dataset
 import torch
 
@@ -37,7 +36,7 @@ def sampling(img, lb, bt, dir, rand_num=56):
             ic = img[:, 256*i:256*(i+1), 256*j:256*(j+1)]
             ic = ic / ic.max() * 255
             ic[ic < 30] = 0
-            ic[ic > 100] = ic[ic > 100] * (1+ic[ic > 100]/255)
+            ic[ic > 80] = ic[ic > 80] * (1+ic[ic > 80]/255)
             ic = np.clip(ic, 0, 255)
             cutim = [ic]
             cutlb = [lb[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
@@ -50,7 +49,7 @@ def sampling(img, lb, bt, dir, rand_num=56):
         ic = img[:, ht:ht+256, wt:wt+256]
         ic = ic / ic.max() * 255
         ic[ic < 30] = 0
-        ic[ic > 100] = ic[ic > 100] * (1+ic[ic > 100]/255)
+        ic[ic > 80] = ic[ic > 80] * (1+ic[ic > 80]/255)
         ic = np.clip(ic, 0, 255)
         cutim = [ic]
         cutlb = [lb[:, ht:ht+256, wt:wt+256]]
@@ -65,11 +64,11 @@ class ImageDataset(Dataset):
         self.files_B = sorted(glob.glob(os.path.join(root + '/data/*_lb.tif')))
 
     def __getitem__(self, index):
-        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).long()
+        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])).long()
         if self.unaligned:
-            item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])/255).long()
+            item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])).long()
         else:
-            item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])/255).long()
+            item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])).long()
 
         return {'Fl': item_A, 'Bn': item_B}
 

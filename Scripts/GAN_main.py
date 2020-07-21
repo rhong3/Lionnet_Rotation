@@ -9,15 +9,8 @@ from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
 
-from GAN import Generator
-from GAN import Discriminator
-from GAN import ReplayBuffer
-from GAN import LambdaLR
-from GAN import Logger
-from GAN import weights_init_normal
-from GAN_prep import ImageDataset
-from GAN_prep import construct
-from GAN_prep import sampling
+from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image
+from GAN_prep import ImageDataset, construct, sampling
 
 # Train
 parser = argparse.ArgumentParser()
