@@ -154,10 +154,17 @@ class Logger():
             # Draw images
             for image_name, tensor in images.items():
                 if image_name not in self.image_windows:
-                    self.image_windows[image_name] = self.viz.images(tensor2image(tensor.data), opts={'title': image_name})
+                    self.image_windows[image_name] = self.viz.image(tensor2image(tensor.data)[0, :, :, :], opts={'title': image_name})
                 else:
-                    self.viz.images(tensor2image(tensor.data), win=self.image_windows[image_name],
+                    self.viz.image(tensor2image(tensor.data)[0, :, :, :], win=self.image_windows[image_name],
                                    opts={'title': image_name})
+
+            for image_name, tensor in images.items():
+                if str(image_name + '_3D') not in self.image_windows:
+                    self.image_windows[str(image_name + '_3D')] = self.viz.image(torch.unsqueeze(torch.squeeze(tensor.data), 3), opts={'title': str(image_name + '_3D')})
+                else:
+                    self.viz.image(torch.unsqueeze(torch.squeeze(tensor.data), 3), win=self.image_windows[str(image_name + '_3D')],
+                                   opts={'title': str(image_name + '_3D')})
 
             # End of epoch
             if (self.batch % self.batches_epoch) == 0:
