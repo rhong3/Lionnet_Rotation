@@ -4,6 +4,7 @@ import random
 import os
 import numpy as np
 from skimage import io, transform
+from skimage.restoration import denoise_tv_chambolle
 from torch.utils.data import Dataset
 import torch
 
@@ -33,7 +34,12 @@ def sampling(img, lb, bt, dir, rand_num=56):
     # original images
     for i in range(12):
         for j in range(12):
-            cutim = [img[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
+            ic = img[:, 256*i:256*(i+1), 256*j:256*(j+1)]
+            ic = ic / ic.max() * 255
+            ic[ic < 30] = 0
+            ic[ic > 100] = ic[ic > 100] * (1+ic[ic > 100]/255)
+            ic = np.clip(ic, 0, 255)
+            cutim = [ic]
             cutlb = [lb[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
             io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*256, j*256), np.asarray(cutim).astype(np.uint8))
             io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*256, j*256), np.asarray(cutlb).astype(np.uint8))
@@ -41,7 +47,12 @@ def sampling(img, lb, bt, dir, rand_num=56):
     for m in range(rand_num):
         ht = random.randint(0, 2048)
         wt = random.randint(0, 2048)
-        cutim = [img[:, ht:ht+256, wt:wt+256]]
+        ic = img[:, ht:ht+256, wt:wt+256]
+        ic = ic / ic.max() * 255
+        ic[ic < 30] = 0
+        ic[ic > 100] = ic[ic > 100] * (1+ic[ic > 100]/255)
+        ic = np.clip(ic, 0, 255)
+        cutim = [ic]
         cutlb = [lb[:, ht:ht+256, wt:wt+256]]
         io.imsave(dir + '/{}_{}_{}_im.tif'.format(bt, ht, wt), np.asarray(cutim).astype(np.uint8))
         io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, ht, wt), np.asarray(cutlb).astype(np.uint8))
