@@ -10,6 +10,7 @@ from visdom import Visdom
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+import requests
 
 
 class ResidualBlock(nn.Module):
@@ -149,34 +150,37 @@ class Logger():
         batches_left = self.batches_epoch * (self.n_epochs - self.epoch) + self.batches_epoch - self.batch
         sys.stdout.write('ETA: %s \n' % (datetime.timedelta(seconds=batches_left * self.mean_period / batches_done)))
 
-        # Draw images
-        for image_name, tensor in images.items():
-            if image_name not in self.image_windows:
-                self.image_windows[image_name] = self.viz.images(tensor2image(tensor.data), opts={'title': image_name})
-            else:
-                self.viz.images(tensor2image(tensor.data), win=self.image_windows[image_name],
-                               opts={'title': image_name})
-
-        # End of epoch
-        if (self.batch % self.batches_epoch) == 0:
-            # Plot losses
-            for loss_name, loss in self.losses.items():
-                if loss_name not in self.loss_windows:
-                    self.loss_windows[loss_name] = self.viz.line(X=np.array([self.epoch]),
-                                                                 Y=np.array([loss / self.batch]),
-                                                                 opts={'xlabel': 'epochs', 'ylabel': loss_name,
-                                                                       'title': loss_name})
+        try:
+            # Draw images
+            for image_name, tensor in images.items():
+                if image_name not in self.image_windows:
+                    self.image_windows[image_name] = self.viz.images(tensor2image(tensor.data), opts={'title': image_name})
                 else:
-                    self.viz.line(X=np.array([self.epoch]), Y=np.array([loss / self.batch]),
-                                  win=self.loss_windows[loss_name], update='append')
-                # Reset losses for next epoch
-                self.losses[loss_name] = 0.0
+                    self.viz.images(tensor2image(tensor.data), win=self.image_windows[image_name],
+                                   opts={'title': image_name})
 
-            self.epoch += 1
-            self.batch = 1
-            sys.stdout.write('\n')
-        else:
-            self.batch += 1
+            # End of epoch
+            if (self.batch % self.batches_epoch) == 0:
+                # Plot losses
+                for loss_name, loss in self.losses.items():
+                    if loss_name not in self.loss_windows:
+                        self.loss_windows[loss_name] = self.viz.line(X=np.array([self.epoch]),
+                                                                     Y=np.array([loss / self.batch]),
+                                                                     opts={'xlabel': 'epochs', 'ylabel': loss_name,
+                                                                           'title': loss_name})
+                    else:
+                        self.viz.line(X=np.array([self.epoch]), Y=np.array([loss / self.batch]),
+                                      win=self.loss_windows[loss_name], update='append')
+                    # Reset losses for next epoch
+                    self.losses[loss_name] = 0.0
+
+                self.epoch += 1
+                self.batch = 1
+                sys.stdout.write('\n')
+            else:
+                self.batch += 1
+        except requests.exceptions.ConnectionError:
+            pass
 
 
 class ReplayBuffer():

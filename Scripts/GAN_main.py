@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
+import requests
 
 from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image
 from GAN_prep import ImageDataset, construct, sampling
@@ -108,7 +109,10 @@ if opt.mode == 'train':
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
-    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/out/log.txt')
+    try:
+        logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/out/log.txt')
+    except requests.exceptions.ConnectionError:
+        pass
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):
