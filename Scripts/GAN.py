@@ -166,7 +166,7 @@ class Logger():
                                opts={'title': 'images'})
 
             # End of epoch
-            if (self.batch % self.batches_epoch) == 0:
+            if (self.batch % self.batches_epoch) == 0 or self.batch == 0:
                 # Plot losses
                 for loss_name, loss in self.losses.items():
                     if loss_name not in self.loss_windows:
