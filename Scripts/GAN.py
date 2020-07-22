@@ -120,7 +120,7 @@ class Logger():
         self.viz = Visdom(server=server_name, log_to_filename=outputfile)
         self.n_epochs = n_epochs
         self.batches_epoch = batches_epoch
-        self.epoch = 1
+        self.epoch = 0
         self.batch = 1
         self.prev_time = time.time()
         self.mean_period = 0
