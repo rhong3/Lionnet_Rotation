@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from skimage import io
 
 from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image,tensor2numpy
-from GAN_prep import ImageDataset, TestDataset, construct, sampling
+from GAN_prep import ImageDataset, TestDataset, construct, sampling, test_sampling
 
 # Train
 parser = argparse.ArgumentParser()
@@ -53,8 +53,11 @@ if not os.path.exists(opt.dataroot):
     os.makedirs(opt.dataroot)
 if not os.path.exists(opt.dataroot + '/data'):
     os.makedirs(opt.dataroot + '/data')
+if not os.path.exists(opt.dataroot + '/data/test'):
+    os.makedirs(opt.dataroot + '/data/test')
 if not os.path.exists(opt.dataroot + '/out'):
     os.makedirs(opt.dataroot + '/out')
+
 
 ###### Definition of variables ######
 # Networks
@@ -99,6 +102,7 @@ if opt.mode == 'train':
     criterion_GAN = torch.nn.MSELoss()
     criterion_cycle = torch.nn.L1Loss()
     criterion_identity = torch.nn.L1Loss()
+    criterion_BCE = torch.nn.BCEWithLogitsLoss()
 
     # Optimizers & LR schedulers
     optimizer_G = torch.optim.Adam(itertools.chain(netG_A2B.parameters(), netG_B2A.parameters()),
@@ -125,7 +129,7 @@ if opt.mode == 'train':
 
     # Dataset loader
 
-    dataloader = DataLoader(ImageDataset(opt.dataroot, unaligned=True),
+    dataloader = DataLoader(ImageDataset(opt.dataroot),
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
@@ -178,8 +182,13 @@ if opt.mode == 'train':
             recovered_B = F.interpolate(recovered_B, [opt.stack, opt.size, opt.size])
             loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
 
+            # BCE loss
+            loss_BCE_A = criterion_BCE(fake_A, real_A)
+            loss_BCE_B = criterion_BCE(fake_B, real_B)
+
             # Total loss
-            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB
+            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB \
+                     + loss_BCE_A + loss_BCE_B
             torch.cuda.empty_cache()
             loss_G.backward()
 
@@ -220,6 +229,7 @@ if opt.mode == 'train':
 
             # Total loss
             loss_D_B = (loss_D_real + loss_D_fake) * 0.5
+            torch.cuda.empty_cache()
             loss_D_B.backward()
 
             optimizer_D_B.step()
@@ -227,7 +237,9 @@ if opt.mode == 'train':
             # Progress report (http://localhost:8097)
             logger.log({'loss_G': loss_G, 'loss_G_identity': (loss_identity_A + loss_identity_B),
                         'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
-                        'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)},
+                        'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB),
+                        'loss_G_BCE': (loss_BCE_A + loss_BCE_B),
+                        'loss_D': (loss_D_A + loss_D_B)},
                        images={'real_A': real_A, 'fake_B': outfake_B, 'real_B': real_B, 'fake_A': outfake_A})
             print("\n", flush=True)
         # Update learning rates
@@ -256,6 +268,7 @@ elif opt.mode == 'test':
     input_B = Tensor(opt.batchSize, opt.output_nc, opt.stack, opt.size, opt.size)
 
     # Dataset loader
+    test_sampling('../test3D', opt.dataroot + '/data/test')
     dataloader = DataLoader(TestDataset(opt.dataroot),
                             batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
 
@@ -269,7 +282,8 @@ elif opt.mode == 'test':
 
         # Save image files
         fake_B = tensor2numpy(fake_B.data)
-        io.imsave(opt.dataroot+'/mask_%04d.tif % (i + 1)', fake_B)
+        outname = batch['name'].split('/')[-1]
+        io.imsave(opt.dataroot+'/out/'+outname, fake_B)
 
         sys.stdout.write('\rGenerated images %04d of %04d' % (i + 1, len(dataloader)))
 

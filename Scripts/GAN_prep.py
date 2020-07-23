@@ -37,11 +37,10 @@ def sampling(img, lb, bt, dir, rand_num=56):
             ic = ic / ic.max() * 255
             ic[ic < 30] = 0
             ic[ic > 80] = ic[ic > 80] * (1+ic[ic > 80]/255)
-            ic = np.clip(ic, 0, 255)
-            cutim = [ic]
-            cutlb = [lb[:, 256*i:256*(i+1), 256*j:256*(j+1)]]
-            io.imsave(dir+'/{}_{}_{}_im.tif'.format(bt, i*256, j*256), np.asarray(cutim).astype(np.uint8))
-            io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*256, j*256), np.asarray(cutlb).astype(np.uint8))
+            cutim = np.clip(ic, 0, 255)
+            cutlb = lb[:, 256*i:256*(i+1), 256*j:256*(j+1)]
+            combined = [np.concatenate((cutim, cutlb), axis=0)]
+            io.imsave(dir+'/{}_{}_{}.tif'.format(bt, i*256, j*256), np.asarray(combined).astype(np.uint8))
     # random
     for m in range(rand_num):
         ht = random.randint(0, 768)
@@ -52,40 +51,48 @@ def sampling(img, lb, bt, dir, rand_num=56):
         ic = ic / ic.max() * 255
         ic[ic < 30] = 0
         ic[ic > 80] = ic[ic > 80] * (1+ic[ic > 80]/255)
-        ic = np.clip(ic, 0, 255)
-        cutim = [ic]
-        cutlb = [lb[:, ht:ht+256, wt:wt+256]]
-        io.imsave(dir + '/{}_{}_{}_im.tif'.format(bt, ht, wt), np.asarray(cutim).astype(np.uint8))
-        io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, ht, wt), np.asarray(cutlb).astype(np.uint8))
+        cutim = np.clip(ic, 0, 255)
+        cutlb = lb[:, mula+ht:mula+ht+256, mulb+wt:mulb+wt+256]
+        combined = [np.concatenate((cutim, cutlb), axis=0)]
+        io.imsave(dir + '/{}_{}_{}.tif'.format(bt, mula+ht, mulb+wt), np.asarray(combined).astype(np.uint8))
+
+
+def test_sampling(root, dir):
+    imlist = sorted(glob.glob(os.path.join(root + '/*.tif')))
+    for m in imlist:
+        im = io.imread(m)
+        for i in range(4):
+            for j in range(4):
+                ic = im[:, 256 * i:256 * (i + 1), 256 * j:256 * (j + 1)]
+                ic = ic / ic.max() * 255
+                ic[ic < 30] = 0
+                ic[ic > 80] = ic[ic > 80] * (1 + ic[ic > 80] / 255)
+                cutim = np.clip(ic, 0, 255)
+                io.imsave(dir + '/{}_{}_{}'.format(i, j, m), np.asarray(cutim).astype(np.uint8))
 
 
 class ImageDataset(Dataset):
     def __init__(self, root, unaligned=False):
         self.unaligned = unaligned
-        self.files_A = sorted(glob.glob(os.path.join(root + '/data/*_im.tif')))
-        self.files_B = sorted(glob.glob(os.path.join(root + '/data/*_lb.tif')))
+        self.files = sorted(glob.glob(os.path.join(root + '/data/*.tif')))
 
     def __getitem__(self, index):
-        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).float()
-        if self.unaligned:
-            item_B = torch.from_numpy(io.imread(self.files_B[random.randint(0, len(self.files_B) - 1)])/255).float()
-        else:
-            item_B = torch.from_numpy(io.imread(self.files_B[index % len(self.files_B)])/255).float()
+        item_A = torch.from_numpy(io.imread(self.files[index % len(self.files)])[:, :7, :, :]/255).float()
+        item_B = torch.from_numpy(io.imread(self.files[index % len(self.files)])[:, 7:14, :, :]/255).float()
 
         return {'Fl': item_A, 'Bn': item_B}
 
     def __len__(self):
-        return max(len(self.files_A), len(self.files_B))
+        return len(self.files)
 
 
 class TestDataset(Dataset):
-    def __init__(self, root, unaligned=False):
-        self.unaligned = unaligned
-        self.files_A = sorted(glob.glob(os.path.join(root + '/data/*.tif')))
+    def __init__(self, root):
+        self.files = sorted(glob.glob(os.path.join(root + '/data/test/*.tif')))
 
     def __getitem__(self, index):
-        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).float()
-        return {'Fl': item_A}
+        item = torch.from_numpy(io.imread(self.files[index % len(self.files)])/255).float()
+        return {'Fl': item, 'name': self.files[index % len(self.files)]}
 
     def __len__(self):
-        return max(len(self.files_A)
+        return len(self.files)
