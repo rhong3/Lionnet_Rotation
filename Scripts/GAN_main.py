@@ -3,13 +3,11 @@
 import argparse
 import itertools
 import os, sys
-from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
 from skimage import io
-
 from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image,tensor2numpy
 from GAN_prep import ImageDataset, TestDataset, construct, sampling, test_sampling
 
@@ -68,6 +66,7 @@ if opt.mode == 'train':
     netD_B = Discriminator(opt.output_nc)
 
 if opt.cuda:
+    torch.cuda.empty_cache()
     netG_A2B.cuda()
     netG_B2A.cuda()
     if opt.mode == 'train':
