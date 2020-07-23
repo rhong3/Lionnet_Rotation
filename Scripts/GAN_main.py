@@ -8,10 +8,10 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
-import requests
+from skimage import io
 
-from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image
-from GAN_prep import ImageDataset, construct, sampling
+from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image,tensor2numpy
+from GAN_prep import ImageDataset, TestDataset, construct, sampling
 
 # Train
 parser = argparse.ArgumentParser()
@@ -256,22 +256,20 @@ elif opt.mode == 'test':
     input_B = Tensor(opt.batchSize, opt.output_nc, opt.stack, opt.size, opt.size)
 
     # Dataset loader
-    dataloader = DataLoader(ImageDataset(opt.dataroot),
+    dataloader = DataLoader(TestDataset(opt.dataroot),
                             batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
 
     ###### Testing######
     for i, batch in enumerate(dataloader):
         # Set model input
         real_A = Variable(input_A.copy_(batch['Fl']))
-        real_B = Variable(input_B.copy_(batch['Bn']))
 
         # Generate output
-        fake_B = 0.5 * (netG_A2B(real_A).data + 1.0)
-        fake_A = 0.5 * (netG_B2A(real_B).data + 1.0)
+        fake_B = netG_A2B(real_A)
 
         # Save image files
-        save_image(fake_A, opt.dataroot+'/out/Fl_%04d.png' % (i + 1))
-        save_image(fake_B, opt.dataroot+'/out/Bn_%04d.png' % (i + 1))
+        fake_B = tensor2numpy(fake_B.data)
+        io.imsave(opt.dataroot+'/mask_%04d.tif % (i + 1)', fake_B)
 
         sys.stdout.write('\rGenerated images %04d of %04d' % (i + 1, len(dataloader)))
 

@@ -77,3 +77,15 @@ class ImageDataset(Dataset):
     def __len__(self):
         return max(len(self.files_A), len(self.files_B))
 
+
+class TestDataset(Dataset):
+    def __init__(self, root, unaligned=False):
+        self.unaligned = unaligned
+        self.files_A = sorted(glob.glob(os.path.join(root + '/data/*.tif')))
+
+    def __getitem__(self, index):
+        item_A = torch.from_numpy(io.imread(self.files_A[index % len(self.files_A)])/255).float()
+        return {'Fl': item_A}
+
+    def __len__(self):
+        return max(len(self.files_A)

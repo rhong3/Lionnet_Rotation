@@ -10,7 +10,6 @@ from visdom import Visdom
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-import requests
 
 
 class ResidualBlock(nn.Module):
@@ -112,6 +111,12 @@ def tensor2image(tensor):
     image = np.clip(255 * (tensor.cpu().float().numpy()), 0, 255)
     if image.shape[1] == 1:
         image = np.tile(image, (1, 3, 1, 1))
+    return image.astype(np.uint8)
+
+
+def tensor2numpy(tensor):
+    tensor = torch.squeeze(tensor)
+    image = np.clip(255 * (tensor.cpu().float().numpy()), 0, 255)
     return image.astype(np.uint8)
 
 
