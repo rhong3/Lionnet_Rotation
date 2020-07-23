@@ -132,10 +132,7 @@ if opt.mode == 'train':
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
-    try:
-        logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/out/log.txt', server_name=opt.server)
-    except:
-        pass
+    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/out/log.txt', server_name=opt.server)
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):

@@ -143,9 +143,9 @@ class Logger():
 
         for i, loss_name in enumerate(losses.keys()):
             if loss_name not in self.losses:
-                self.losses[loss_name] = losses[loss_name]
+                self.losses[loss_name] = losses[loss_name].item()
             else:
-                self.losses[loss_name] += losses[loss_name]
+                self.losses[loss_name] += losses[loss_name].item()
 
             if (i + 1) == len(losses.keys()):
                 sys.stdout.write('%s: %.4f -- ' % (loss_name, self.losses[loss_name] / self.batch))
@@ -156,63 +156,60 @@ class Logger():
         batches_left = self.batches_epoch * (self.n_epochs - self.epoch) + self.batches_epoch - self.batch
         sys.stdout.write('ETA: %s \n' % (datetime.timedelta(seconds=batches_left * self.mean_period / batches_done)))
 
-        try:
-            # Draw images
-            tlist = []
-            for image_name, tensor in images.items():
-                tlist.append(tensor)
-            tensortemp = torch.cat([tlist[0], tlist[1]], dim=2)
-            for ii in range(2, len(tlist)):
-                tensortemp = torch.cat([tensortemp, tlist[ii]], dim=2)
-            if 'images' not in self.image_windows:
-                self.image_windows['images'] = self.viz.images(tensor2image(tensortemp.data), nrow=7,
-                                                                             opts={'title': 'images'})
-            else:
-                self.viz.images(tensor2image(tensortemp.data), win=self.image_windows['images'], nrow=7,
-                               opts={'title': 'images'})
+        # Draw images
+        tlist = []
+        for image_name, tensor in images.items():
+            tlist.append(tensor)
+        tensortemp = torch.cat([tlist[0], tlist[1]], dim=2)
+        for ii in range(2, len(tlist)):
+            tensortemp = torch.cat([tensortemp, tlist[ii]], dim=2)
+        if 'images' not in self.image_windows:
+            self.image_windows['images'] = self.viz.images(tensor2image(tensortemp.data), nrow=7,
+                                                                         opts={'title': 'images'})
+        else:
+            self.viz.images(tensor2image(tensortemp.data), win=self.image_windows['images'], nrow=7,
+                           opts={'title': 'images'})
 
-            # End of epoch
-            if (self.batch % self.batches_epoch) == 0:
-                # Plot losses
-                for loss_name, loss in self.losses.items():
-                    if loss_name not in self.losses_series:
-                        self.losses_series[loss_name] = [loss / self.batch]
-                    else:
-                        self.losses_series[loss_name].append(loss / self.batch)
-                    if loss_name not in self.loss_windows:
-                        self.loss_windows[loss_name] = self.viz.line(X=np.arange(self.epoch),
-                                                                     Y=np.array(self.losses_series[loss_name]),
-                                                                     opts={'xlabel': 'epochs', 'ylabel': loss_name,
-                                                                           'title': loss_name})
-                    else:
-                        self.viz.line(X=np.arange(self.epoch), Y=np.array(self.losses_series[loss_name]),
-                                      win=self.loss_windows[loss_name], update='replace')
-                    # Reset losses for next epoch
-                    self.losses[loss_name] = 0.0
-                self.epoch += 1
-                self.batch = 1
-                sys.stdout.write('\n')
-            elif self.epoch * self.batch == 1:
-                # Plot losses
-                for loss_name, loss in self.losses.items():
-                    if loss_name not in self.losses_series:
-                        self.losses_series[loss_name] = [loss]
-                    else:
-                        self.losses_series[loss_name].append(loss)
-                    if loss_name not in self.loss_windows:
-                        self.loss_windows[loss_name] = self.viz.line(X=np.array([self.epoch-1]),
-                                                                     Y=np.array([loss]),
-                                                                     opts={'xlabel': 'epochs', 'ylabel': loss_name,
-                                                                           'title': loss_name})
-                    else:
-                        self.viz.line(X=np.array([self.epoch-1]), Y=np.array([loss]),
-                                      win=self.loss_windows[loss_name], update='append')
-                self.batch += 1
-                sys.stdout.write('\n')
-            else:
-                self.batch += 1
-        except:
-            pass
+        # End of epoch
+        if (self.batch % self.batches_epoch) == 0:
+            # Plot losses
+            for loss_name, loss in self.losses.items():
+                if loss_name not in self.losses_series:
+                    self.losses_series[loss_name] = [loss / self.batch]
+                else:
+                    self.losses_series[loss_name].append(loss / self.batch)
+                if loss_name not in self.loss_windows:
+                    self.loss_windows[loss_name] = self.viz.line(X=np.arange(self.epoch+1),
+                                                                 Y=np.array(self.losses_series[loss_name]),
+                                                                 opts={'xlabel': 'epochs', 'ylabel': loss_name,
+                                                                       'title': loss_name})
+                else:
+                    self.viz.line(X=np.arange(self.epoch+1), Y=np.array(self.losses_series[loss_name]),
+                                  win=self.loss_windows[loss_name], update='replace')
+                # Reset losses for next epoch
+                self.losses[loss_name] = 0.0
+            self.epoch += 1
+            self.batch = 1
+            sys.stdout.write('\n')
+        elif self.epoch * self.batch == 1:
+            # Plot losses
+            for loss_name, loss in self.losses.items():
+                if loss_name not in self.losses_series:
+                    self.losses_series[loss_name] = [loss]
+                else:
+                    self.losses_series[loss_name].append(loss)
+                if loss_name not in self.loss_windows:
+                    self.loss_windows[loss_name] = self.viz.line(X=np.arange(self.epoch),
+                                                                 Y=np.array(self.losses_series[loss_name]),
+                                                                 opts={'xlabel': 'epochs', 'ylabel': loss_name,
+                                                                       'title': loss_name})
+                else:
+                    self.viz.line(X=np.arange(self.epoch), Y=np.array(self.losses_series[loss_name]),
+                                  win=self.loss_windows[loss_name], update='append')
+            self.batch += 1
+            sys.stdout.write('\n')
+        else:
+            self.batch += 1
 
 
 class ReplayBuffer():
