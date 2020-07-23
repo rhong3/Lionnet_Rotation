@@ -129,7 +129,7 @@ if opt.mode == 'train':
 
     # Dataset loader
 
-    dataloader = DataLoader(ImageDataset(opt.dataroot),
+    dataloader = DataLoader(ImageDataset(opt.dataroot, opt.stack),
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot

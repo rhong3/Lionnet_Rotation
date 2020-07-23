@@ -72,13 +72,13 @@ def test_sampling(root, dir):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, root, unaligned=False):
-        self.unaligned = unaligned
+    def __init__(self, root, stack):
         self.files = sorted(glob.glob(os.path.join(root + '/data/*.tif')))
+        self.stack = stack
 
     def __getitem__(self, index):
-        item_A = torch.from_numpy(io.imread(self.files[index % len(self.files)])[:, :7, :, :]/255).float()
-        item_B = torch.from_numpy(io.imread(self.files[index % len(self.files)])[:, 7:14, :, :]/255).float()
+        item_A = torch.from_numpy(io.imread(self.files[index % len(self.files)])[:, :self.stack, :, :]/255).float()
+        item_B = torch.from_numpy(io.imread(self.files[index % len(self.files)])[:, self.stack:, :, :]/255).float()
 
         return {'Fl': item_A, 'Bn': item_B}
 
