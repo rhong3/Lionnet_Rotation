@@ -198,6 +198,7 @@ class Logger():
                     else:
                         self.viz.line(X=np.array([self.epoch-1]), Y=np.array([loss]),
                                       win=self.loss_windows[loss_name], update='append')
+                self.batch += 1
                 sys.stdout.write('\n')
             else:
                 self.batch += 1
