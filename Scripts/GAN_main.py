@@ -240,7 +240,7 @@ if opt.mode == 'train':
                         'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB),
                         'loss_G_BCE': (loss_BCE_A + loss_BCE_B),
                         'loss_D': (loss_D_A + loss_D_B)},
-                       images={'real_A': real_A, 'fake_B': outfake_B, 'real_B': real_B, 'fake_A': outfake_A})
+                       images={'real_B': real_B, 'fake_B': outfake_B, 'real_A': real_A, 'fake_A': outfake_A})
             print("\n", flush=True)
         # Update learning rates
         lr_scheduler_G.step()

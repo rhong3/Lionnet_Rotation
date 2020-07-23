@@ -125,7 +125,7 @@ class Logger():
         self.viz = Visdom(server=server_name, log_to_filename=outputfile)
         self.n_epochs = n_epochs
         self.batches_epoch = batches_epoch
-        self.epoch = 0
+        self.epoch = 1
         self.batch = 1
         self.prev_time = time.time()
         self.mean_period = 0
@@ -171,7 +171,7 @@ class Logger():
                                opts={'title': 'images'})
 
             # End of epoch
-            if (self.batch % self.batches_epoch) == 0 or self.batch == 0:
+            if (self.batch % self.batches_epoch) == 0:
                 # Plot losses
                 for loss_name, loss in self.losses.items():
                     if loss_name not in self.loss_windows:
@@ -184,9 +184,20 @@ class Logger():
                                       win=self.loss_windows[loss_name], update='append')
                     # Reset losses for next epoch
                     self.losses[loss_name] = 0.0
-
                 self.epoch += 1
                 self.batch = 1
+                sys.stdout.write('\n')
+            elif self.epoch * self.batch == 1:
+                # Plot losses
+                for loss_name, loss in self.losses.items():
+                    if loss_name not in self.loss_windows:
+                        self.loss_windows[loss_name] = self.viz.line(X=np.array([self.epoch-1]),
+                                                                     Y=np.array([loss]),
+                                                                     opts={'xlabel': 'epochs', 'ylabel': loss_name,
+                                                                           'title': loss_name})
+                    else:
+                        self.viz.line(X=np.array([self.epoch-1]), Y=np.array([loss]),
+                                      win=self.loss_windows[loss_name], update='append')
                 sys.stdout.write('\n')
             else:
                 self.batch += 1
