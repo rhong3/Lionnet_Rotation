@@ -132,6 +132,7 @@ class Logger():
         self.losses = {}
         self.loss_windows = {}
         self.image_windows = {}
+        self.losses_series = {}
 
     def log(self, losses=None, images=None):
         self.mean_period += (time.time() - self.prev_time)
@@ -142,9 +143,9 @@ class Logger():
 
         for i, loss_name in enumerate(losses.keys()):
             if loss_name not in self.losses:
-                self.losses[loss_name] = losses[loss_name].item()
+                self.losses[loss_name] = losses[loss_name]
             else:
-                self.losses[loss_name] += losses[loss_name].item()
+                self.losses[loss_name] += losses[loss_name]
 
             if (i + 1) == len(losses.keys()):
                 sys.stdout.write('%s: %.4f -- ' % (loss_name, self.losses[loss_name] / self.batch))
@@ -174,14 +175,18 @@ class Logger():
             if (self.batch % self.batches_epoch) == 0:
                 # Plot losses
                 for loss_name, loss in self.losses.items():
+                    if loss_name not in self.losses_series:
+                        self.losses_series[loss_name] = [loss / self.batch]
+                    else:
+                        self.losses_series[loss_name].append(loss / self.batch)
                     if loss_name not in self.loss_windows:
-                        self.loss_windows[loss_name] = self.viz.line(X=np.array([self.epoch]),
-                                                                     Y=np.array([loss / self.batch]),
+                        self.loss_windows[loss_name] = self.viz.line(X=np.arange(self.epoch),
+                                                                     Y=np.array(self.losses_series[loss_name]),
                                                                      opts={'xlabel': 'epochs', 'ylabel': loss_name,
                                                                            'title': loss_name})
                     else:
-                        self.viz.line(X=np.array([self.epoch]), Y=np.array([loss / self.batch]),
-                                      win=self.loss_windows[loss_name], update='append')
+                        self.viz.line(X=np.arange(self.epoch), Y=np.array(self.losses_series[loss_name]),
+                                      win=self.loss_windows[loss_name], update='replace')
                     # Reset losses for next epoch
                     self.losses[loss_name] = 0.0
                 self.epoch += 1
@@ -190,6 +195,10 @@ class Logger():
             elif self.epoch * self.batch == 1:
                 # Plot losses
                 for loss_name, loss in self.losses.items():
+                    if loss_name not in self.losses_series:
+                        self.losses_series[loss_name] = [loss]
+                    else:
+                        self.losses_series[loss_name].append(loss)
                     if loss_name not in self.loss_windows:
                         self.loss_windows[loss_name] = self.viz.line(X=np.array([self.epoch-1]),
                                                                      Y=np.array([loss]),
