@@ -16,6 +16,7 @@ from GAN_prep import ImageDataset, construct, sampling
 # Train
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', type=str, default='train', help='train or test')
+parser.add_argument('--resume', type=str, default='N', help='reload and resume training (Y or N)')
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
 parser.add_argument('--n_epochs', type=int, default=2, help='number of epochs of training')
 parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
@@ -36,6 +37,10 @@ parser.add_argument('--generator_A2B', type=str, default='../Results/trial/netG_
                     help='Fluorescence to Binary generator checkpoint file')
 parser.add_argument('--generator_B2A', type=str, default='../Results/trial/netG_B2A.pth',
                     help='Binary to Fluorescence generator checkpoint file')
+parser.add_argument('--discriminator_A', type=str, default='../Results/trial/netD_A.pth',
+                    help='Fluorescence discriminator checkpoint file')
+parser.add_argument('--discriminator_B', type=str, default='../Results/trial/netD_B.pth',
+                    help='Binary discriminator checkpoint file')
 opt = parser.parse_args()
 if opt.decay_epoch == 0:
     opt.decay_epoch = int(opt.n_epochs/2)
@@ -71,11 +76,24 @@ if opt.mode == 'train':
     for numm in range(int(opt.n_data/200)):
         bigimage, biglabel = construct('../train3D')
         sampling(bigimage, biglabel, numm+1, opt.dataroot + '/data', rand_num=56)
+    if opt.resume == 'Y':
+        # Load state dicts
+        netG_A2B.load_state_dict(torch.load(opt.generator_A2B))
+        netG_B2A.load_state_dict(torch.load(opt.generator_B2A))
+        netD_A.load_state_dict(torch.load(opt.discriminator_A))
+        netD_B.load_state_dict(torch.load(opt.discriminator_B))
 
-    netG_A2B.apply(weights_init_normal)
-    netG_B2A.apply(weights_init_normal)
-    netD_A.apply(weights_init_normal)
-    netD_B.apply(weights_init_normal)
+        # Set model's test mode
+        netG_A2B.eval()
+        netG_B2A.eval()
+        netD_A.eval()
+        netD_B.eval()
+
+    else:
+        netG_A2B.apply(weights_init_normal)
+        netG_B2A.apply(weights_init_normal)
+        netD_A.apply(weights_init_normal)
+        netD_B.apply(weights_init_normal)
 
     # Lossess
     criterion_GAN = torch.nn.MSELoss()
@@ -162,6 +180,7 @@ if opt.mode == 'train':
 
             # Total loss
             loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB
+            torch.cuda.empty_cache()
             loss_G.backward()
 
             optimizer_G.step()
@@ -181,6 +200,7 @@ if opt.mode == 'train':
 
             # Total loss
             loss_D_A = (loss_D_real + loss_D_fake) * 0.5
+            torch.cuda.empty_cache()
             loss_D_A.backward()
 
             optimizer_D_A.step()

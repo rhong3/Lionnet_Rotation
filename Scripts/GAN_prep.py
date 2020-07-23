@@ -44,9 +44,11 @@ def sampling(img, lb, bt, dir, rand_num=56):
             io.imsave(dir + '/{}_{}_{}_lb.tif'.format(bt, i*256, j*256), np.asarray(cutlb).astype(np.uint8))
     # random
     for m in range(rand_num):
-        ht = random.randint(0, 2048)
-        wt = random.randint(0, 2048)
-        ic = img[:, ht:ht+256, wt:wt+256]
+        ht = random.randint(0, 768)
+        wt = random.randint(0, 768)
+        mula = 1024*random.randint(0, 3)
+        mulb = 1024*random.randint(0, 3)
+        ic = img[:, mula+ht:mula+ht+256, mulb+wt:mulb+wt+256]
         ic = ic / ic.max() * 255
         ic[ic < 30] = 0
         ic[ic > 80] = ic[ic > 80] * (1+ic[ic > 80]/255)
