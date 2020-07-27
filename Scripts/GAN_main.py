@@ -178,8 +178,8 @@ if opt.mode == 'train':
             loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
 
             # BCE loss
-            loss_BCE_A = criterion_BCE(fake_A, real_A)
-            loss_BCE_B = criterion_BCE(fake_B, real_B)
+            loss_BCE_A = criterion_BCE(fake_A, real_A) * 10.0
+            loss_BCE_B = criterion_BCE(fake_B, real_B) * 10.0
 
             # Total loss
             loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB \
