@@ -87,8 +87,8 @@ def test_reassemble(dir):
         imf4 = np.concatenate((io.imread(str(dir+'/0_3_' + im)), io.imread(str(dir+'/1_3_' + im)),
                                io.imread(str(dir+'/2_3_' + im)), io.imread(str(dir+'/3_3_' + im))), axis=1)
         imf = np.concatenate((imf1, imf2, imf3, imf4), axis=2)
-        imf = mph.remove_small_objects((imf/255).astype(bool), min_size=500, connectivity=2).astype(np.uint8)
-        imf = mph.remove_small_holes(imf, min_size=500, connectivity=2)*255
+        imf = mph.remove_small_objects((imf/255).astype(bool), min_size=500, connectivity=1).astype(np.uint8)
+        imf = mph.remove_small_holes(imf, min_size=500, connectivity=1)*255
         io.imsave(dir + '/' + im, np.asarray(imf).astype(np.uint8))
     for ii in former:
         os.remove(ii)
