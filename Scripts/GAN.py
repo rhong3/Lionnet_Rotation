@@ -195,9 +195,9 @@ class Logger():
             # Plot losses
             for loss_name, loss in self.losses.items():
                 if loss_name not in self.losses_series:
-                    self.losses_series[loss_name] = [loss]
+                    self.losses_series[loss_name] = [loss / self.batch]
                 else:
-                    self.losses_series[loss_name].append(loss)
+                    self.losses_series[loss_name].append(loss / self.batch)
                 if loss_name not in self.loss_windows:
                     self.loss_windows[loss_name] = self.viz.line(X=np.arange(self.epoch),
                                                                  Y=np.array(self.losses_series[loss_name]),
