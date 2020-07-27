@@ -77,7 +77,7 @@ def test_reassemble(dir):
     imlist = []
     for ii in former:
         imlist.append((ii.split('/')[-1])[4:])
-    for im in imlist:
+    for im in list(np.unique(np.array(imlist))):
         imf1 = np.concatenate((io.imread(str(dir+'/0_0_' + im)), io.imread(str(dir+'/1_0_' + im)),
                                io.imread(str(dir+'/2_0_' + im)), io.imread(str(dir+'/3_0_' + im))), axis=1)
         imf2 = np.concatenate((io.imread(str(dir+'/0_1_' + im)), io.imread(str(dir+'/1_1_' + im)),
