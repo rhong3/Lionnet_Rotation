@@ -283,8 +283,9 @@ elif opt.mode == 'test':
         io.imsave(opt.dataroot+'/out/'+outname, fake_B)
         os.remove(batch['name'][0])
         sys.stdout.write('\r Test done for image %04d of %04d' % (i + 1, len(dataloader)))
+
     test_reassemble(opt.dataroot+'/out')
-    sys.stdout.write('\n')
+    sys.stdout.write('\n Test Done!')
 
 else:
     print("Please check your input arguments!", flush=True)

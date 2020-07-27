@@ -78,14 +78,16 @@ def test_reassemble(dir):
     for ii in former:
         imlist.append((ii.split('/')[-1])[4:])
     for im in imlist:
-        imf1 = np.cacatenate((io.imread(str('0_0_' + im)), io.imread(str('1_0_' + im)), io.imread(str('2_0_' + im))),
-                             axis=1)
-        imf2 = np.cacatenate((io.imread(str('0_1_' + im)), io.imread(str('1_1_' + im)), io.imread(str('2_1_' + im))),
-                             axis=1)
-        imf3 = np.cacatenate((io.imread(str('0_2_' + im)), io.imread(str('1_2_' + im)), io.imread(str('2_2_' + im))),
-                             axis=1)
-        imf = np.cacatenate((imf1, imf2, imf3), axis=2)
-        imf = mph.remove_small_objects(imf/255, min_size=500, connectivity=2)
+        imf1 = np.concatenate((io.imread(str(dir+'/0_0_' + im)), io.imread(str(dir+'/1_0_' + im)),
+                               io.imread(str(dir+'/2_0_' + im)), io.imread(str(dir+'/3_0_' + im))), axis=1)
+        imf2 = np.concatenate((io.imread(str(dir+'/0_1_' + im)), io.imread(str(dir+'/1_1_' + im)),
+                               io.imread(str(dir+'/2_1_' + im)), io.imread(str(dir+'/3_1_' + im))), axis=1)
+        imf3 = np.concatenate((io.imread(str(dir+'/0_2_' + im)), io.imread(str(dir+'/1_2_' + im)),
+                               io.imread(str(dir+'/2_2_' + im)), io.imread(str(dir+'/3_2_' + im))), axis=1)
+        imf4 = np.concatenate((io.imread(str(dir+'/0_3_' + im)), io.imread(str(dir+'/1_3_' + im)),
+                               io.imread(str(dir+'/2_3_' + im)), io.imread(str(dir+'/3_3_' + im))), axis=1)
+        imf = np.concatenate((imf1, imf2, imf3, imf4), axis=2)
+        imf = mph.remove_small_objects((imf/255).astype(bool), min_size=500, connectivity=2).astype(np.uint8)
         imf = mph.remove_small_holes(imf, min_size=500, connectivity=2)*255
         io.imsave(dir + '/' + im, np.asarray(imf).astype(np.uint8))
     for ii in former:
