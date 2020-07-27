@@ -278,10 +278,10 @@ elif opt.mode == 'test':
 
         # Save image files
         fake_B = tensor2numpy(fake_B.data)
-        outname = batch['name'].split('/')[-1]
+        outname = (batch['name'][0]).split('/')[-1]
         io.imsave(opt.dataroot+'/out/'+outname, fake_B)
 
-        sys.stdout.write('\rGenerated images %04d of %04d' % (i + 1, len(dataloader)))
+        sys.stdout.write('\r Test done! Images %04d of %04d' % (i + 1, len(dataloader)))
 
     sys.stdout.write('\n')
 

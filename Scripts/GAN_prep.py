@@ -68,7 +68,7 @@ def test_sampling(root, dir):
                 ic[ic < 30] = 0
                 ic[ic > 80] = ic[ic > 80] * (1 + ic[ic > 80] / 255)
                 cutim = np.clip(ic, 0, 255)
-                io.imsave(dir + '/{}_{}_{}'.format(i, j, m), np.asarray(cutim).astype(np.uint8))
+                io.imsave(dir + '/{}_{}_{}'.format(i, j, m.split('/')[-1]), np.asarray(cutim).astype(np.uint8))
 
 
 class ImageDataset(Dataset):
