@@ -6,6 +6,7 @@ import numpy as np
 from skimage import io
 from torch.utils.data import Dataset
 import torch
+import skimage.morphology as mph
 
 
 def construct(root):
@@ -69,6 +70,26 @@ def test_sampling(root, dir):
                 ic[ic > 80] = ic[ic > 80] * (1 + ic[ic > 80] / 255)
                 cutim = np.clip(ic, 0, 255)
                 io.imsave(dir + '/{}_{}_{}'.format(i, j, m.split('/')[-1]), np.asarray(cutim).astype(np.uint8))
+
+
+def test_reassemble(dir):
+    former = sorted(glob.glob(os.path.join(dir + '/*.tif')))
+    imlist = []
+    for ii in former:
+        imlist.append((ii.split('/')[-1])[4:])
+    for im in imlist:
+        imf1 = np.cacatenate((io.imread(str('0_0_' + im)), io.imread(str('1_0_' + im)), io.imread(str('2_0_' + im))),
+                             axis=1)
+        imf2 = np.cacatenate((io.imread(str('0_1_' + im)), io.imread(str('1_1_' + im)), io.imread(str('2_1_' + im))),
+                             axis=1)
+        imf3 = np.cacatenate((io.imread(str('0_2_' + im)), io.imread(str('1_2_' + im)), io.imread(str('2_2_' + im))),
+                             axis=1)
+        imf = np.cacatenate((imf1, imf2, imf3), axis=2)
+        imf = mph.remove_small_objects(imf/255, min_size=500, connectivity=2)
+        imf = mph.remove_small_holes(imf, min_size=500, connectivity=2)*255
+        io.imsave(dir + '/' + im, np.asarray(imf).astype(np.uint8))
+    for ii in former:
+        os.remove(ii)
 
 
 class ImageDataset(Dataset):

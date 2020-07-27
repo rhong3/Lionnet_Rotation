@@ -1,5 +1,4 @@
 # Cycle-GAN 3D main
-
 import argparse
 import itertools
 import os, sys
@@ -9,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from skimage import io
 from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image,tensor2numpy
-from GAN_prep import ImageDataset, TestDataset, construct, sampling, test_sampling
+from GAN_prep import ImageDataset, TestDataset, construct, sampling, test_sampling, test_reassemble
 
 # Train
 parser = argparse.ArgumentParser()
@@ -132,7 +131,7 @@ if opt.mode == 'train':
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
-    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/out/log.txt', server_name=opt.server)
+    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/log.txt', server_name=opt.server)
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):
@@ -278,11 +277,13 @@ elif opt.mode == 'test':
 
         # Save image files
         fake_B = tensor2numpy(fake_B.data)
+        fake_B[fake_B > 200] = 255
+        fake_B[fake_B <= 200] = 0
         outname = (batch['name'][0]).split('/')[-1]
         io.imsave(opt.dataroot+'/out/'+outname, fake_B)
-
-        sys.stdout.write('\r Test done! Images %04d of %04d' % (i + 1, len(dataloader)))
-
+        os.remove(batch['name'][0])
+        sys.stdout.write('\r Test done for image %04d of %04d' % (i + 1, len(dataloader)))
+    test_reassemble(opt.dataroot+'/out')
     sys.stdout.write('\n')
 
 else:
