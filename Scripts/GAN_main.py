@@ -29,7 +29,9 @@ parser.add_argument('--output_nc', type=int, default=1, help='number of channels
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
 parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
 parser.add_argument('--server', type=str, default='bigpurple-ln1',
-                    help='Fluorescence to Binary generator checkpoint file')
+                    help='server of Visdom visualization')
+parser.add_argument('--port', type=int, default=8097,
+                    help='port of Visdom visualization')
 parser.add_argument('--generator_A2B', type=str, default='../Results/trial/netG_A2B.pth',
                     help='Fluorescence to Binary generator checkpoint file')
 parser.add_argument('--generator_B2A', type=str, default='../Results/trial/netG_B2A.pth',
@@ -131,7 +133,7 @@ if opt.mode == 'train':
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
-    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/log.txt', server_name=opt.server)
+    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/log.txt', server_name=opt.server, port_=opt.port)
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):

@@ -121,8 +121,8 @@ def tensor2numpy(tensor):
 
 
 class Logger():
-    def __init__(self, n_epochs, batches_epoch, outputfile, server_name):
-        self.viz = Visdom(server=server_name, log_to_filename=outputfile)
+    def __init__(self, n_epochs, batches_epoch, outputfile, server_name, port_=8097):
+        self.viz = Visdom(server=server_name, port=port_, log_to_filename=outputfile)
         self.n_epochs = n_epochs
         self.batches_epoch = batches_epoch
         self.epoch = 1
