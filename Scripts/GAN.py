@@ -191,7 +191,7 @@ class Logger():
             self.epoch += 1
             self.batch = 1
             sys.stdout.write('\n')
-        elif self.epoch == 1 and self.batch == 100:
+        elif self.epoch == 1 and self.batch == 1000:
             # Plot losses
             for loss_name, loss in self.losses.items():
                 if loss_name not in self.losses_series:
