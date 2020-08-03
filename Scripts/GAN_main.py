@@ -136,7 +136,6 @@ if opt.mode == 'train':
     # Loss plot
     logger = Logger_numpy(opt.n_epochs, len(dataloader), opt.dataroot + '/out')
 
-
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):
         print('starting epoch: ', epoch+1, flush=True)
