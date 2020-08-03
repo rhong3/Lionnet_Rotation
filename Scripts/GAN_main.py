@@ -132,7 +132,6 @@ if opt.mode == 'train':
 
     dataloader = DataLoader(ImageDataset(opt.dataroot, opt.stack),
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
-
     # Loss plot
     logger = Logger_numpy(opt.n_epochs, len(dataloader), opt.dataroot + '/out')
 
