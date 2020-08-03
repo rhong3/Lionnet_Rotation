@@ -7,7 +7,8 @@ from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
 from skimage import io
-from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, weights_init_normal, tensor2image,tensor2numpy
+from GAN import Generator, Discriminator, ReplayBuffer, LambdaLR, Logger, \
+    Logger_numpy, weights_init_normal, tensor2image,tensor2numpy
 from GAN_prep import ImageDataset, TestDataset, construct, sampling, test_sampling, test_reassemble
 
 # Train
@@ -133,7 +134,7 @@ if opt.mode == 'train':
                             batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
     # Loss plot
-    logger = Logger(opt.n_epochs, len(dataloader), opt.dataroot + '/log.txt', server_name=opt.server, port_=opt.port)
+    logger = Logger_numpy(opt.n_epochs, len(dataloader), opt.dataroot + '/out')
 
     ###### Training ######
     for epoch in range(opt.epoch, opt.n_epochs):

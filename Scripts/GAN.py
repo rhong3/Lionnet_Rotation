@@ -10,6 +10,7 @@ from visdom import Visdom
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 
 class ResidualBlock(nn.Module):
@@ -118,6 +119,88 @@ def tensor2numpy(tensor):
     tensor = torch.squeeze(tensor)
     image = np.clip(255 * (tensor.cpu().float().numpy()), 0, 255)
     return image.astype(np.uint8)
+
+
+class Logger_numpy():
+    def __init__(self, n_epochs, batches_epoch, output_dir):
+        self.n_epochs = n_epochs
+        self.batches_epoch = batches_epoch
+        self.epoch = 1
+        self.batch = 1
+        self.prev_time = time.time()
+        self.mean_period = 0
+        self.losses = {}
+        self.losses_series = {}
+        self.output_dir = output_dir
+
+    def log(self, losses=None, images=None):
+        self.mean_period += (time.time() - self.prev_time)
+        self.prev_time = time.time()
+
+        sys.stdout.write(
+            '\rEpoch %03d/%03d [%04d/%04d] -- ' % (self.epoch, self.n_epochs, self.batch, self.batches_epoch))
+
+        for i, loss_name in enumerate(losses.keys()):
+            if loss_name not in self.losses:
+                self.losses[loss_name] = losses[loss_name].item()
+            else:
+                self.losses[loss_name] += losses[loss_name].item()
+
+            if (i + 1) == len(losses.keys()):
+                sys.stdout.write('%s: %.4f -- ' % (loss_name, self.losses[loss_name] / self.batch))
+            else:
+                sys.stdout.write('%s: %.4f | ' % (loss_name, self.losses[loss_name] / self.batch))
+
+        batches_done = self.batches_epoch * (self.epoch - 1) + self.batch
+        batches_left = self.batches_epoch * (self.n_epochs - self.epoch) + self.batches_epoch - self.batch
+        sys.stdout.write('ETA: %s \n' % (datetime.timedelta(seconds=batches_left * self.mean_period / batches_done)))
+
+        # Draw images
+        tlist = []
+        for image_name, tensor in images.items():
+            tlist.append(tensor)
+        tensortemp = torch.cat([tlist[0], tlist[1]], dim=2)
+        for ii in range(2, len(tlist)):
+            tensortemp = torch.cat([tensortemp, tlist[ii]], dim=2)
+
+        # End of epoch
+        if (self.batch % self.batches_epoch) == 0:
+            # Plot losses
+            for loss_name, loss in self.losses.items():
+                if loss_name not in self.losses_series:
+                    self.losses_series[loss_name] = [loss / self.batch]
+                else:
+                    self.losses_series[loss_name].append(loss / self.batch)
+                plt.plot(np.arange(self.epoch+1), np.array(self.losses_series[loss_name]))
+                plt.title(str(loss_name))
+                plt.xlabel('epoch')
+                plt.ylabel("loss")
+                plt.savefig(self.output_dir+'/'+str(loss_name)+'.png')
+                plt.clf()
+                plt.close()
+                # Reset losses for next epoch
+                self.losses[loss_name] = 0.0
+            self.epoch += 1
+            self.batch = 1
+            sys.stdout.write('\n')
+        elif self.epoch == 1 and self.batch == 1000:
+            # Plot losses
+            for loss_name, loss in self.losses.items():
+                if loss_name not in self.losses_series:
+                    self.losses_series[loss_name] = [loss / self.batch]
+                else:
+                    self.losses_series[loss_name].append(loss / self.batch)
+                plt.plot(np.arange(self.epoch), np.array(self.losses_series[loss_name]))
+                plt.title(str(loss_name))
+                plt.xlabel('epoch')
+                plt.ylabel("loss")
+                plt.savefig(self.output_dir+'/'+str(loss_name)+'.png')
+                plt.clf()
+                plt.close()
+            self.batch += 1
+            sys.stdout.write('\n')
+        else:
+            self.batch += 1
 
 
 class Logger():
