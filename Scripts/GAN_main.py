@@ -286,7 +286,7 @@ elif opt.mode == 'test':
         os.remove(batch['name'][0])
         sys.stdout.write('\r Test done for image %04d of %04d' % (i + 1, len(dataloader)))
 
-    test_reassemble(opt.dataroot+'/out')
+    test_reassemble(opt.dataroot+'/out', opt.stack)
     sys.stdout.write('\n Test Done! \n')
 
 else:

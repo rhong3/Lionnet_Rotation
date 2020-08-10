@@ -72,7 +72,7 @@ def test_sampling(root, dir):
                 io.imsave(dir + '/{}_{}_{}'.format(i, j, m.split('/')[-1]), np.asarray(cutim).astype(np.uint8))
 
 
-def test_reassemble(dir):
+def test_reassemble(dir, stack):
     former = sorted(glob.glob(os.path.join(dir + '/*.tif')))
     imlist = []
     for ii in former:
@@ -87,6 +87,7 @@ def test_reassemble(dir):
         imf4 = np.concatenate((io.imread(str(dir+'/0_3_' + im)), io.imread(str(dir+'/1_3_' + im)),
                                io.imread(str(dir+'/2_3_' + im)), io.imread(str(dir+'/3_3_' + im))), axis=1)
         imf = np.concatenate((imf1, imf2, imf3, imf4), axis=2)
+        imf = imf[:stack, :, :]
         imf = mph.remove_small_objects((imf/255).astype(bool), min_size=500, connectivity=1).astype(np.uint8)
         imf = mph.remove_small_holes(imf, min_size=500, connectivity=1)*255
         io.imsave(dir + '/' + im, np.asarray(imf).astype(np.uint8))
