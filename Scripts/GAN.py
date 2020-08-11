@@ -1,5 +1,6 @@
 # Cycle-GAN 3D models
-
+import matplotlib
+matplotlib.use('Agg')
 import random
 import time
 import datetime
