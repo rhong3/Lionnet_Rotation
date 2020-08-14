@@ -87,12 +87,6 @@ if opt.mode == 'train':
         netD_A.load_state_dict(torch.load(opt.discriminator_A))
         netD_B.load_state_dict(torch.load(opt.discriminator_B))
 
-        # Set model's test mode
-        netG_A2B.eval()
-        netG_B2A.eval()
-        netD_A.eval()
-        netD_B.eval()
-
     else:
         netG_A2B.apply(weights_init_normal)
         netG_B2A.apply(weights_init_normal)
