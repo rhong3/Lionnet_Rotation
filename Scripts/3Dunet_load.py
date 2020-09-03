@@ -157,9 +157,9 @@ def dataloader(mode='test'):
             images['Image'].append(imgs)
             images['ID'].append(i)
 
-        with open(mode + '_norm2.pickle', 'wb') as f:
+        with open('../inputs/' + mode + '_norm2.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open(mode + '_norm2.pickle', 'rb') as f:
+        with open('../inputs/' + mode + '_norm2.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
