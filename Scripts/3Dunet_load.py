@@ -202,20 +202,6 @@ def test(tesample, model, mode):
         io.imsave(output + '/' + teid + mode + '.tif', ((ott/ott.max())*255).astype(np.uint8))
 
 
-def cbtest(tesample):
-    for itr in range(len(tesample['ID'])):
-        teid = tesample['ID'][itr]
-        a = io.imread(output + '/' + teid + 'nuke.tif')
-        b = io.imread(output + '/' + teid + 'gap.tif')
-        pred = np.clip(a - b, 0, None)
-        pred = mph.remove_small_objects(pred.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
-        pred = mph.remove_small_holes(pred, min_size=5000, connectivity=1)
-        pred = mph.remove_small_holes(pred, min_size=5000, connectivity=2)
-        io.imsave(output + '/' + teid + '_pred.tif', ((pred / pred.max()) * 255).astype(np.uint8))
-        os.remove(output + '/' + teid + 'nuke.tif')
-        os.remove(output + '/' + teid + 'gap.tif')
-
-
 if __name__ == '__main__':
     sample = dataloader('test')
 
@@ -224,12 +210,4 @@ if __name__ == '__main__':
     model.load_state_dict(a['state_dict'])
 
     test(sample, model, 'nuke')
-
-    model = Cuda(UNet())
-    a = torch.load(gp)
-    model.load_state_dict(a['state_dict'])
-
-    test(sample, model, 'gap')
-
-    cbtest(sample)
 

@@ -10,10 +10,8 @@ import pandas as pd
 import torch
 from torch.autograd import Variable
 from torch.nn import init
-from torchvision.utils import save_image
 import sys
 import os
-import skimage.morphology as mph
 from skimage import io
 import torch.nn.functional as F
 import imageio
@@ -207,9 +205,9 @@ def dataloader(handles, mode='train'):
                 images['Label'].append(np.array(lb_aug))
                 images['Gap'].append(np.array(gap_aug))
         # Save images
-        with open("../inputs/flpickles/" + mode + '.pickle', 'wb') as f:
+        with open("../inputs/" + mode + '.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/flpickles/' + mode + '.pickle', 'rb') as f:
+        with open('../inputs/' + mode + '.pickle', 'rb') as f:
             images = pickle.load(f)
 
     return images
@@ -413,7 +411,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
             trim = sample['Image'][rows[0]]
             trla = sample['Label'][rows[0]]
             trga = sample['Gap'][rows[0]]
-            for iit in range(13):
+            for iit in range(1):
                 trimm = trim[iit]
                 trlaa = trla[iit]
                 trgaa = trga[iit]
@@ -535,9 +533,9 @@ def train(bs, sample, vasample, ep, ilr, mode):
                 pred_t = torch.from_numpy(((pred_np / pred_np.max()) * 255).astype(np.uint8))
                 if not os.path.exists(output + '/' + mode + 'results_trainning/'):
                     os.makedirs(output + '/' + mode + 'results_trainning/')
-                [imageio.imwrite(
-                    output + '/' + mode + 'results_trainning/' + vasample['ID'][itr] + '_' + str(epoch) + '_%d.png' % i,
-                    pred_t[i, :, :]) for i in range(7)]
+                # [imageio.imwrite(
+                #     output + '/' + mode + 'results_trainning/' + vasample['ID'][itr] + '_' + str(epoch) + '_%d.png' % i,
+                #     pred_t[i, :, :]) for i in range(7)]
                 # dice and BCE loss
                 vloss = loss_fn(pred_maskv, yv).cpu() + dice_loss(torch.sigmoid(pred_maskv), yv)
                 vlosslist.append(vloss.data.numpy())
