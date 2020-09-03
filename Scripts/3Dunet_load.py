@@ -7,11 +7,9 @@ import skimage.morphology as mph
 import sys
 import os
 import pickle
-import scipy.misc
 
 output = sys.argv[1]
 md = sys.argv[2]
-gp = sys.argv[3]
 
 # Set random seeds
 cuda = torch.cuda.is_available()
