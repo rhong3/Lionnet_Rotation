@@ -128,10 +128,10 @@ class UNet(torch.nn.Module):
 def image_ids_in(root_dir, ignore=['.DS_Store', 'trainset_summary.csv', 'stage2_train_labels.csv', 'samples.csv']):
     ids = []
     for id in os.listdir(root_dir):
-        if id in ignore:
-            print('Skipping ID:', id)
-        else:
+        if '.tif' in id:
             ids.append(id)
+        else:
+            print('Skipping ID:', id)
     return ids
 
 
@@ -140,32 +140,24 @@ def dataloader(mode='test'):
         with open(mode + '_norm2.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
+        imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
         images = {}
         images['Image'] = []
         images['ID'] = []
-        for ww in ['Rd1', 'Rd2', 'Rd3']:
-            handles = image_ids_in(ww)
-            # images['Dim'] = []
-            for i in handles:
-                im = io.imread(ww + '/'+i)
-                # print(np.shape(im))
-                # sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
-                # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
-                # im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
-                im = im / im.max() * 255
-                im = 255 - im
-                im_c = (im - im.mean())
-                im_c[im_c < 0] = 0
-                # im = (im_c / im_c.max() * 255)
-                im = np.invert(im.astype(np.uint8))
-                image = np.empty((im.shape[0], 3, im.shape[1], im.shape[2]), dtype='float32')
-                for j in range(im.shape[0]):
-                    for k in range(3):
-                        image[j,k,:,:] = im[j,:,:]
-                images['Image'].append(image)
-                j = i.split('.')[0]
-                # io.imsave('Images/' +'norm_'+ j + '.tif', im)
-                images['ID'].append(ww + '_' + j)
+        handles = image_ids_in('../test3D')
+        # images['Dim'] = []
+        for i in handles:
+            im = io.imread('../test3D/'+i)
+            # print(np.shape(im))
+            # sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
+            # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
+            # im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
+            im = im / im.max() * 255
+            im = im / 255  # Normalization
+            im = np.expand_dims(im, axis=0)
+            imgs[0] = im
+            images['Image'].append(imgs)
+            images['ID'].append(i)
 
         with open(mode + '_norm2.pickle', 'wb') as f:
             pickle.dump(images, f)
@@ -178,34 +170,23 @@ def test(tesample, model, mode):
     if not os.path.exists(output):
         os.makedirs(output)
     for itr in range(len(tesample['ID'])):
+        torch.cuda.empty_cache()
         teim = tesample['Image'][itr]
         # print(np.shape(teim))
         teid = tesample['ID'][itr]
-        Da = teim.shape[2]
-        Db = teim.shape[3]
-        if teim.shape[2] != 1024 or teim.shape[3] != 1024:
-            qq = np.empty((teim.shape[0],teim.shape[1],1024,1024))
-            for j in range(teim.shape[0]):
-                for k in range(3):
-                    qq[j,k,:,:] = scipy.misc.imresize(teim[j,k,:,:], (1024, 1024))
-            teim = qq
-        ott = np.empty((teim.shape[0], Da, Db))
-        for itt in range(teim.shape[0]):
-            xt = Cuda(Variable(torch.from_numpy(teim[itt:itt+1, :, :, :]).type(torch.FloatTensor)))
-            pred_mask = model(xt)
-            pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
-            pred_np = scipy.misc.imresize(pred_np[0,0,:,:], (Da, Db))
-            pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
-            if mode == 'nuke':
-                pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
-            ott[itt,:,:] = pred_np
-        io.imsave(output + '/' + teid + mode + '.tif', ((ott/ott.max())*255).astype(np.uint8))
+        xt = Variable(torch.from_numpy(teim).type(torch.FloatTensor)).to(device)
+        pred_mask = model(xt)
+        pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
+        if mode == 'nuke':
+            pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
+        io.imsave(output + '/pred_' + teid, ((pred_np/pred_np.max())*255).astype(np.uint8))
 
 
 if __name__ == '__main__':
     sample = dataloader('test')
 
-    model = Cuda(UNet())
+    model = UNet().to(device)
     a = torch.load(md)
     model.load_state_dict(a['state_dict'])
 
