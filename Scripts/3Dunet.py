@@ -1,7 +1,6 @@
 # Import all relevant libraries
-import torchio as tio
+# import torchio as tio
 import pickle
-from torchio import AFFINE
 import matplotlib
 
 matplotlib.use('Agg')
@@ -10,13 +9,10 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.autograd import Variable
-from torch.nn import functional as F
 from torch.nn import init
-from skimage.morphology import label
 from torchvision.utils import save_image
 import sys
 import os
-import time
 import skimage.morphology as mph
 from skimage import io
 import torch.nn.functional as F
@@ -68,24 +64,24 @@ def dataloader(handles, mode='train'):
         images['Gap'] = []
         images['ID'] = []
 
-        # Data augmentations
-        random_flip = tio.RandomFlip(axes=1)
-        random_flip2 = tio.RandomFlip(axes=2)
-        random_affine = tio.RandomAffine(seed=0, scales=(3, 3))
-        random_elastic = tio.RandomElasticDeformation(
-            max_displacement=(0, 20, 40),
-            num_control_points=20,
-            seed=0,
-        )
-        rescale = tio.RescaleIntensity((-1, 1), percentiles=(1, 99))
-        standardize_foreground = tio.ZNormalization(masking_method=lambda x: x > x.mean())
-        blur = tio.RandomBlur(seed=0)
-        standardize = tio.ZNormalization()
-        add_noise = tio.RandomNoise(std=0.5, seed=42)
-        add_spike = tio.RandomSpike(seed=42)
-        add_ghosts = tio.RandomGhosting(intensity=1.5, seed=42)
-        add_motion = tio.RandomMotion(num_transforms=6, image_interpolation='nearest', seed=42)
-        swap = tio.RandomSwap(patch_size=7)
+        # # Data augmentations
+        # random_flip = tio.RandomFlip(axes=1)
+        # random_flip2 = tio.RandomFlip(axes=2)
+        # random_affine = tio.RandomAffine(seed=0, scales=(3, 3))
+        # random_elastic = tio.RandomElasticDeformation(
+        #     max_displacement=(0, 20, 40),
+        #     num_control_points=20,
+        #     seed=0,
+        # )
+        # rescale = tio.RescaleIntensity((-1, 1), percentiles=(1, 99))
+        # standardize_foreground = tio.ZNormalization(masking_method=lambda x: x > x.mean())
+        # blur = tio.RandomBlur(seed=0)
+        # standardize = tio.ZNormalization()
+        # add_noise = tio.RandomNoise(std=0.5, seed=42)
+        # add_spike = tio.RandomSpike(seed=42)
+        # add_ghosts = tio.RandomGhosting(intensity=1.5, seed=42)
+        # add_motion = tio.RandomMotion(num_transforms=6, image_interpolation='nearest', seed=42)
+        # swap = tio.RandomSwap(patch_size=7)
 
         # For each image
         for idx, row in handles.iterrows():
@@ -101,43 +97,43 @@ def dataloader(handles, mode='train'):
             imgs[0] = im
             im_aug.append(imgs)
             images['ID'].append(row['ID'])
-            if mode == 'train':
-                im_flip1 = random_flip(im)
-                imgs[0] = im_flip1
-                im_aug.append(imgs)
-                im_flip2 = random_flip2(im)
-                imgs[0] = im_flip2
-                im_aug.append(imgs)
-                im_affine = random_affine(im)
-                imgs[0] = im_affine
-                im_aug.append(imgs)
-                im_elastic = random_elastic(im)
-                imgs[0] = im_elastic
-                im_aug.append(imgs)
-                im_rescale = rescale(im)
-                imgs[0] = im_rescale
-                im_aug.append(imgs)
-                im_standard = standardize_foreground(im)
-                imgs[0] = im_standard
-                im_aug.append(imgs)
-                im_blur = blur(im)
-                imgs[0] = im_blur
-                im_aug.append(imgs)
-                im_noisy = add_noise(standardize(im))
-                imgs[0] = im_noisy
-                im_aug.append(imgs)
-                im_spike = add_spike(im)
-                imgs[0] = im_spike
-                im_aug.append(imgs)
-                im_ghost = add_ghosts(im)
-                imgs[0] = im_ghost
-                im_aug.append(imgs)
-                im_motion = add_motion(im)
-                imgs[0] = im_motion
-                im_aug.append(imgs)
-                im_swap = swap(im)
-                imgs[0] = im_swap
-                im_aug.append(imgs)
+            # if mode == 'train':
+            #     im_flip1 = random_flip(im)
+            #     imgs[0] = im_flip1
+            #     im_aug.append(imgs)
+            #     im_flip2 = random_flip2(im)
+            #     imgs[0] = im_flip2
+            #     im_aug.append(imgs)
+            #     im_affine = random_affine(im)
+            #     imgs[0] = im_affine
+            #     im_aug.append(imgs)
+            #     im_elastic = random_elastic(im)
+            #     imgs[0] = im_elastic
+            #     im_aug.append(imgs)
+            #     im_rescale = rescale(im)
+            #     imgs[0] = im_rescale
+            #     im_aug.append(imgs)
+            #     im_standard = standardize_foreground(im)
+            #     imgs[0] = im_standard
+            #     im_aug.append(imgs)
+            #     im_blur = blur(im)
+            #     imgs[0] = im_blur
+            #     im_aug.append(imgs)
+            #     im_noisy = add_noise(standardize(im))
+            #     imgs[0] = im_noisy
+            #     im_aug.append(imgs)
+            #     im_spike = add_spike(im)
+            #     imgs[0] = im_spike
+            #     im_aug.append(imgs)
+            #     im_ghost = add_ghosts(im)
+            #     imgs[0] = im_ghost
+            #     im_aug.append(imgs)
+            #     im_motion = add_motion(im)
+            #     imgs[0] = im_motion
+            #     im_aug.append(imgs)
+            #     im_swap = swap(im)
+            #     imgs[0] = im_swap
+            #     im_aug.append(imgs)
             images['Image'].append(np.array(im_aug))
 
             if mode != 'test':
@@ -150,64 +146,64 @@ def dataloader(handles, mode='train'):
                 gap = np.expand_dims(gap, axis=0)
                 gaps[0] = gap
                 gap_aug.append(gaps)
-                if mode == 'train':
-                    lb_flip1 = random_flip(lb)
-                    lbs[0] = lb_flip1
-                    lb_aug.append(lbs)
-                    lb_flip2 = random_flip2(lb)
-                    lbs[0] = lb_flip2
-                    lb_aug.append(lbs)
-                    lb_affine = random_affine(lb)
-                    lbs[0] = lb_affine
-                    lb_aug.append(lbs)
-                    lb_elastic = random_elastic(lb)
-                    lbs[0] = lb_elastic
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-                    lbs[0] = lb
-                    lb_aug.append(lbs)
-
-                    gap_flip1 = random_flip(gap)
-                    gaps[0] = gap_flip1
-                    gap_aug.append(gaps)
-                    gap_flip2 = random_flip2(gap)
-                    gaps[0] = gap_flip2
-                    gap_aug.append(gaps)
-                    gap_affine = random_affine(gap)
-                    gaps[0] = gap_affine
-                    gap_aug.append(gaps)
-                    gap_elastic = random_elastic(gap)
-                    gaps[0] = gap_elastic
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
-                    gaps[0] = gap
-                    gap_aug.append(gaps)
+                # if mode == 'train':
+                    # lb_flip1 = random_flip(lb)
+                    # lbs[0] = lb_flip1
+                    # lb_aug.append(lbs)
+                    # lb_flip2 = random_flip2(lb)
+                    # lbs[0] = lb_flip2
+                    # lb_aug.append(lbs)
+                    # lb_affine = random_affine(lb)
+                    # lbs[0] = lb_affine
+                    # lb_aug.append(lbs)
+                    # lb_elastic = random_elastic(lb)
+                    # lbs[0] = lb_elastic
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    # lbs[0] = lb
+                    # lb_aug.append(lbs)
+                    #
+                    # gap_flip1 = random_flip(gap)
+                    # gaps[0] = gap_flip1
+                    # gap_aug.append(gaps)
+                    # gap_flip2 = random_flip2(gap)
+                    # gaps[0] = gap_flip2
+                    # gap_aug.append(gaps)
+                    # gap_affine = random_affine(gap)
+                    # gaps[0] = gap_affine
+                    # gap_aug.append(gaps)
+                    # gap_elastic = random_elastic(gap)
+                    # gaps[0] = gap_elastic
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
+                    # gaps[0] = gap
+                    # gap_aug.append(gaps)
                 images['Label'].append(np.array(lb_aug))
                 images['Gap'].append(np.array(gap_aug))
         # Save images
@@ -662,27 +658,27 @@ def train(bs, sample, vasample, ep, ilr, mode):
                             if ppp.max() == 0 or ppp.min() == 1:
                                 print('3rd_BOOM!')
                                 ppp_t = torch.from_numpy(ppp.astype(np.uint8))
-                                [imageio.imwrite(
-                                    output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
-                                    ppp_t[i, :, :]) for i in range(7)]
+                                # [imageio.imwrite(
+                                #     output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
+                                #     ppp_t[i, :, :]) for i in range(7)]
 
                             else:
                                 ppp = (ppp / ppp.max()) * 1
                                 ppp = (ppp > 0.95).astype(np.uint8)
                                 ppp_m = torch.from_numpy(((ppp / ppp.max()) * 255).astype(np.uint8))
-                                [imageio.imwrite(
-                                    output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
-                                    ppp_m[i, :, :]) for i in range(7)]
+                                # [imageio.imwrite(
+                                #     output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
+                                #     ppp_m[i, :, :]) for i in range(7)]
 
                         else:
                             pww_t = torch.from_numpy(((pww / pww.max()) * 255).astype(np.uint8))
-                            [imageio.imwrite(output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
-                                             pww_t[i, :, :]) for i in range(7)]
+                            # [imageio.imwrite(output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
+                            #                  pww_t[i, :, :]) for i in range(7)]
 
                     else:
                         pred_t = torch.from_numpy(((pred_np / pred_np.max()) * 255).astype(np.uint8))
-                        [imageio.imwrite(output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
-                                         pred_t[i, :, :]) for i in range(7)]
+                        # [imageio.imwrite(output + '/' + mode + 'validation/' + vasample['ID'][itr] + '_%d.png' % i,
+                        #                  pred_t[i, :, :]) for i in range(7)]
 
                 break
 
@@ -694,50 +690,9 @@ def train(bs, sample, vasample, ep, ilr, mode):
     plt.savefig(output + '/' + mode + '_loss.png')
 
 
-def vatest(vasample):
-    if not os.path.exists(output + '/validation'):
-        os.makedirs(output + '/validation')
-    for itr in range(len(vasample['ID'])):
-        vaid = vasample['ID'][itr]
-        a = io.imread(output + '/nukevalidation/' + vaid + '.png')
-        b = io.imread(output + '/gapvalidation/' + vaid + '.png')
-        out = np.clip(a - b, 0, None)
-        out = mph.remove_small_objects(out, min_size=30, connectivity=1)
-        out = mph.remove_small_holes(out, min_size=30, connectivity=2)
-        save_image(output + '/validation/' + vaid + '_pred.png',
-                   ((out / out.max()) * 255).astype(np.uint8))
-
-
-def cbtest(tesample, group):
-    test_ids = []
-    rles = []
-    if not os.path.exists(output + '/final_' + group):
-        os.makedirs(output + '/final_' + group)
-    for itr in range(len(tesample['ID'])):
-        teid = tesample['ID'][itr]
-        a = io.imread(output + '/' + group + '/' + teid + '_nuke_pred.png')
-        b = io.imread(output + '/' + group + '/' + teid + '_gap_pred.png')
-        out = np.clip(a - b, 0, None)
-        out = mph.remove_small_objects(out, min_size=30, connectivity=1)
-        out = mph.remove_small_holes(out, min_size=30, connectivity=2)
-        out = ((out / out.max()) * 255).astype(np.uint8)
-        save_image(output + '/final_' + group + '/' + teid + '_pred.png',
-                   ((out / out.max()) * 255).astype(np.uint8))
-        # vectorize mask
-        rle = list(prob_to_rles(out))
-        rles.extend(rle)
-        test_ids.extend([teid] * len(rle))
-    # save vectorize masks as CSV
-    sub = pd.DataFrame()
-    sub['ImageId'] = test_ids
-    sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
-
-    return sub
-
-
 if __name__ == '__main__':
     # Read in files containing paths to training, validation, and testing images
-    data = pd.read_csv('/scratch/tn709/samples.csv', header=0,
+    data = pd.read_csv('../train3D/samples.csv', header=0,
                        usecols=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'Depth', 'ID'])
     # Split into tranning and validation
     n_rows = len(data)
@@ -753,4 +708,3 @@ if __name__ == '__main__':
 
     # training
     train(1, trsample, vasample, int(eps), float(LR), 'nuke')
-    train(1, trsample, vasample, int(eps), float(LR), 'gap')
