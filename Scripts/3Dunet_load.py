@@ -138,7 +138,7 @@ def dataloader(mode='test'):
         with open(mode + '_norm2.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
-        imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
+        # imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
         images = {}
         images['Image'] = []
         images['ID'] = []
@@ -146,15 +146,11 @@ def dataloader(mode='test'):
         # images['Dim'] = []
         for i in handles:
             im = io.imread('../test3D/'+i)
-            # print(np.shape(im))
-            # sigma_est = estimate_sigma(im, multichannel=False, average_sigmas=True)
-            # print("Estimated Gaussian noise standard deviation = {}".format(sigma_est))
-            # im = denoise_tv_chambolle(im, weight=0.1, multichannel=False)
             im = im / im.max() * 255
             im = im / 255  # Normalization
             im = np.expand_dims(im, axis=0)
-            imgs[0] = im
-            images['Image'].append(imgs)
+            im = np.expand_dims(im, axis=0)
+            images['Image'].append(im)
             images['ID'].append(i)
 
         with open('../inputs/' + mode + '_norm2.pickle', 'wb') as f:
