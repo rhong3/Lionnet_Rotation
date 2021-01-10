@@ -135,17 +135,17 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'trainset_summary.csv', 'stage2_
 
 def dataloader(mode='test'):
     try:
-        with open(mode + '_norm2.pickle', 'rb') as f:
+        with open(mode + '_0105.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         # imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
         images = {}
         images['Image'] = []
         images['ID'] = []
-        handles = image_ids_in('../test3D')
+        handles = image_ids_in('../Nuclei')
         # images['Dim'] = []
         for i in handles:
-            im = io.imread('../test3D/'+i)
+            im = io.imread('../Nuclei/'+i)
             im = im / im.max() * 255
             im = im / 255  # Normalization
             im = np.expand_dims(im, axis=0)
@@ -153,9 +153,9 @@ def dataloader(mode='test'):
             images['Image'].append(im)
             images['ID'].append(i)
 
-        with open('../inputs/' + mode + '_norm2.pickle', 'wb') as f:
+        with open('../inputs/' + mode + '_0105.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/' + mode + '_norm2.pickle', 'rb') as f:
+        with open('../inputs/' + mode + '_0105.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
