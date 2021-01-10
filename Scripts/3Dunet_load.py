@@ -50,7 +50,7 @@ class UNet_down_block(torch.nn.Module):
 class UNet_up_block(torch.nn.Module):
     def __init__(self, prev_channel, input_channel, output_channel, depth):
         super(UNet_up_block, self).__init__()
-        self.up_sampling = torch.nn.Upsample(scale_factor=(depth, 2, 2), mode='trilinear', align_corners=True)
+        self.up_sampling = torch.nn.Upsample(size=[depth, int(8192/output_channel), int(8192/output_channel)], mode='trilinear')
         self.conv1 = torch.nn.Conv3d(prev_channel + input_channel, output_channel, 3, padding=1)
         self.bn1 = torch.nn.BatchNorm3d(output_channel)
         self.conv2 = torch.nn.Conv3d(output_channel, output_channel, 3, padding=1)
@@ -61,10 +61,6 @@ class UNet_up_block(torch.nn.Module):
 
     def forward(self, prev_feature_map, x):
         x = self.up_sampling(x)
-        print(x.size(), end=' ')
-        print(prev_feature_map.size())
-        # if list(x.size())[2] != list(prev_feature_map.size())[2]:
-        #     prev_feature_map = prev_feature_map.narrow(2, 0, list(x.size())[2])
         x = torch.cat((x, prev_feature_map), dim=1)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
@@ -91,13 +87,13 @@ class UNet(torch.nn.Module):
         self.mid_conv3 = torch.nn.Conv3d(1024, 1024, 3, padding=1)
         self.bn3 = torch.nn.BatchNorm3d(1024)
 
-        self.up_block1 = UNet_up_block(512, 1024, 512, 1)
-        self.up_block2 = UNet_up_block(256, 512, 256, 1)
-        self.up_block3 = UNet_up_block(128, 256, 128, 9/8)
-        self.up_block4 = UNet_up_block(64, 128, 64, 11/9)
-        self.up_block5 = UNet_up_block(32, 64, 32, 15/11)
-        self.up_block6 = UNet_up_block(16, 32, 16, 23/15)
-        self.up_sampling = torch.nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear')
+        self.up_block1 = UNet_up_block(512, 1024, 512, 8)
+        self.up_block2 = UNet_up_block(256, 512, 256, 8)
+        self.up_block3 = UNet_up_block(128, 256, 128, 8)
+        self.up_block4 = UNet_up_block(64, 128, 64, 9)
+        self.up_block5 = UNet_up_block(32, 64, 32, 11)
+        self.up_block6 = UNet_up_block(16, 32, 16, 15)
+        self.up_sampling = torch.nn.Upsample(size=[23, 1024, 1024], mode='trilinear')
         self.last_conv1 = torch.nn.Conv3d(16, 16, 3, padding=1)
         self.last_bn = torch.nn.BatchNorm3d(16)
         self.last_conv2 = torch.nn.Conv3d(16, 1, 1, padding=0)
