@@ -160,6 +160,28 @@ def dataloader(mode='test'):
     return images
 
 
+def mem_efficient_test(model, mode):
+    if not os.path.exists(output):
+        os.makedirs(output)
+    handles = image_ids_in('../Nuclei')
+    for i in handles:
+        torch.cuda.empty_cache()
+        im = io.imread('../Nuclei/' + i)
+        im = im / im.max() * 255
+        im = im / 255  # Normalization
+        im = np.expand_dims(im, axis=0)
+        im = np.expand_dims(im, axis=0)
+        teim = im
+        teid = i
+        xt = Variable(torch.from_numpy(teim).type(torch.FloatTensor)).to(device)
+        pred_mask = model(xt)
+        pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
+        if mode == 'nuke':
+            pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
+        io.imsave(output + '/pred_' + teid, ((pred_np / pred_np.max()) * 255).astype(np.uint8))
+
+
 def test(tesample, model, mode):
     if not os.path.exists(output):
         os.makedirs(output)
@@ -178,11 +200,12 @@ def test(tesample, model, mode):
 
 
 if __name__ == '__main__':
-    sample = dataloader('test')
+    # sample = dataloader('test')
 
     model = UNet().to(device)
     a = torch.load(md)
     model.load_state_dict(a['state_dict'])
 
-    test(sample, model, 'nuke')
+    # test(sample, model, 'nuke')
+    mem_efficient_test(model, 'nuke')
 
