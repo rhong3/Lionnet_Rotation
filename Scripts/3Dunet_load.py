@@ -50,7 +50,7 @@ class UNet_down_block(torch.nn.Module):
 class UNet_up_block(torch.nn.Module):
     def __init__(self, prev_channel, input_channel, output_channel):
         super(UNet_up_block, self).__init__()
-        self.up_sampling = torch.nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear')
+        self.up_sampling = torch.nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear', align_corners=True)
         self.conv1 = torch.nn.Conv3d(prev_channel + input_channel, output_channel, 3, padding=1)
         self.bn1 = torch.nn.BatchNorm3d(output_channel)
         self.conv2 = torch.nn.Conv3d(output_channel, output_channel, 3, padding=1)
@@ -61,6 +61,9 @@ class UNet_up_block(torch.nn.Module):
 
     def forward(self, prev_feature_map, x):
         x = self.up_sampling(x)
+        if list(x.size())[2] != list(prev_feature_map.size())[2]:
+            prev_feature_map = prev_feature_map.narrow(2, 0, list(x.size())[2])
+        print(prev_feature_map.size())
         x = torch.cat((x, prev_feature_map), dim=1)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
