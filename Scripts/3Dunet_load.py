@@ -135,7 +135,7 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'trainset_summary.csv', 'stage2_
 
 def dataloader(mode='test'):
     try:
-        with open(mode + '_0105.pickle', 'rb') as f:
+        with open(mode + '_0219.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         # imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
@@ -153,9 +153,9 @@ def dataloader(mode='test'):
             images['Image'].append(im)
             images['ID'].append(i)
 
-        with open('../inputs/' + mode + '_0105.pickle', 'wb') as f:
+        with open('../inputs/' + mode + '_0219.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/' + mode + '_0105.pickle', 'rb') as f:
+        with open('../inputs/' + mode + '_0219.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -178,7 +178,7 @@ def mem_efficient_test(model, mode):
         pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
         if mode == 'nuke':
-            pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
+            pred_np = mph.remove_small_holes(pred_np, area_threshold=500, connectivity=2)
         io.imsave(output + '/pred_' + teid, ((pred_np / pred_np.max()) * 255).astype(np.uint8))
 
 
@@ -195,7 +195,7 @@ def test(tesample, model, mode):
         pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
         pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
         if mode == 'nuke':
-            pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
+            pred_np = mph.remove_small_holes(pred_np, area_threshold=500, connectivity=2)
         io.imsave(output + '/pred_' + teid, ((pred_np/pred_np.max())*255).astype(np.uint8))
 
 
