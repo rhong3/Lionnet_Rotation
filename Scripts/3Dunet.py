@@ -2,8 +2,6 @@
 # import torchio as tio
 import pickle
 import matplotlib
-
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,7 +12,7 @@ import sys
 import os
 from skimage import io
 import torch.nn.functional as F
-import imageio
+matplotlib.use('Agg')
 
 # Type in output folder, epoch number, and initial learning rate
 output = sys.argv[1]
