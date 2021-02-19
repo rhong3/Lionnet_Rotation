@@ -688,7 +688,7 @@ def train(bs, sample, vasample, ep, ilr, mode):
 
 if __name__ == '__main__':
     # Read in files containing paths to training, validation, and testing images
-    data = pd.read_csv('../train3D/samples.csv', header=0,
+    data = pd.read_csv('../inputs/train3D/samples.csv', header=0,
                        usecols=['Type', 'Image', 'Label', 'Gap', 'Width', 'Height', 'Depth', 'ID'])
     # Split into tranning and validation
     n_rows = len(data)
