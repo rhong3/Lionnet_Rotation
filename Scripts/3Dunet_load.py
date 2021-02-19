@@ -48,9 +48,9 @@ class UNet_down_block(torch.nn.Module):
 
 
 class UNet_up_block(torch.nn.Module):
-    def __init__(self, prev_channel, input_channel, output_channel):
+    def __init__(self, prev_channel, input_channel, output_channel, depth):
         super(UNet_up_block, self).__init__()
-        self.up_sampling = torch.nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear')
+        self.up_sampling = torch.nn.Upsample(size=[depth, int(8192/output_channel), int(8192/output_channel)], mode='trilinear')
         self.conv1 = torch.nn.Conv3d(prev_channel + input_channel, output_channel, 3, padding=1)
         self.bn1 = torch.nn.BatchNorm3d(output_channel)
         self.conv2 = torch.nn.Conv3d(output_channel, output_channel, 3, padding=1)
@@ -87,13 +87,13 @@ class UNet(torch.nn.Module):
         self.mid_conv3 = torch.nn.Conv3d(1024, 1024, 3, padding=1)
         self.bn3 = torch.nn.BatchNorm3d(1024)
 
-        self.up_block1 = UNet_up_block(512, 1024, 512)
-        self.up_block2 = UNet_up_block(256, 512, 256)
-        self.up_block3 = UNet_up_block(128, 256, 128)
-        self.up_block4 = UNet_up_block(64, 128, 64)
-        self.up_block5 = UNet_up_block(32, 64, 32)
-        self.up_block6 = UNet_up_block(16, 32, 16)
-        self.up_sampling = torch.nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear')
+        self.up_block1 = UNet_up_block(512, 1024, 512, 8)
+        self.up_block2 = UNet_up_block(256, 512, 256, 8)
+        self.up_block3 = UNet_up_block(128, 256, 128, 8)
+        self.up_block4 = UNet_up_block(64, 128, 64, 9)
+        self.up_block5 = UNet_up_block(32, 64, 32, 11)
+        self.up_block6 = UNet_up_block(16, 32, 16, 15)
+        self.up_sampling = torch.nn.Upsample(size=[23, 1024, 1024], mode='trilinear')
         self.last_conv1 = torch.nn.Conv3d(16, 16, 3, padding=1)
         self.last_bn = torch.nn.BatchNorm3d(16)
         self.last_conv2 = torch.nn.Conv3d(16, 1, 1, padding=0)
@@ -135,17 +135,17 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'trainset_summary.csv', 'stage2_
 
 def dataloader(mode='test'):
     try:
-        with open(mode + '_norm2.pickle', 'rb') as f:
+        with open(mode + '_0105.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         # imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
         images = {}
         images['Image'] = []
         images['ID'] = []
-        handles = image_ids_in('../test3D')
+        handles = image_ids_in('../Nuclei')
         # images['Dim'] = []
         for i in handles:
-            im = io.imread('../test3D/'+i)
+            im = io.imread('../Nuclei/'+i)
             im = im / im.max() * 255
             im = im / 255  # Normalization
             im = np.expand_dims(im, axis=0)
@@ -153,11 +153,33 @@ def dataloader(mode='test'):
             images['Image'].append(im)
             images['ID'].append(i)
 
-        with open('../inputs/' + mode + '_norm2.pickle', 'wb') as f:
+        with open('../inputs/' + mode + '_0105.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/' + mode + '_norm2.pickle', 'rb') as f:
+        with open('../inputs/' + mode + '_0105.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
+
+
+def mem_efficient_test(model, mode):
+    if not os.path.exists(output):
+        os.makedirs(output)
+    handles = image_ids_in('../Nuclei')
+    for i in handles:
+        torch.cuda.empty_cache()
+        im = io.imread('../Nuclei/' + i)
+        im = im / im.max() * 255
+        im = im / 255  # Normalization
+        im = np.expand_dims(im, axis=0)
+        im = np.expand_dims(im, axis=0)
+        teim = im
+        teid = i
+        xt = Variable(torch.from_numpy(teim).type(torch.FloatTensor)).to(device)
+        pred_mask = model(xt)
+        pred_np = (F.sigmoid(pred_mask) > 0.625).cpu().data.numpy().astype(np.uint8)
+        pred_np = mph.remove_small_objects(pred_np.astype(bool), min_size=500, connectivity=2).astype(np.uint8)
+        if mode == 'nuke':
+            pred_np = mph.remove_small_holes(pred_np, min_size=500, connectivity=2)
+        io.imsave(output + '/pred_' + teid, ((pred_np / pred_np.max()) * 255).astype(np.uint8))
 
 
 def test(tesample, model, mode):
@@ -178,11 +200,12 @@ def test(tesample, model, mode):
 
 
 if __name__ == '__main__':
-    sample = dataloader('test')
+    # sample = dataloader('test')
 
     model = UNet().to(device)
     a = torch.load(md)
     model.load_state_dict(a['state_dict'])
 
-    test(sample, model, 'nuke')
+    # test(sample, model, 'nuke')
+    mem_efficient_test(model, 'nuke')
 
