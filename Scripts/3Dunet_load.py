@@ -89,11 +89,11 @@ class UNet(torch.nn.Module):
 
         self.up_block1 = UNet_up_block(512, 1024, 512, 8)
         self.up_block2 = UNet_up_block(256, 512, 256, 8)
-        self.up_block3 = UNet_up_block(128, 256, 128, 8)
-        self.up_block4 = UNet_up_block(64, 128, 64, 9)
-        self.up_block5 = UNet_up_block(32, 64, 32, 11)
-        self.up_block6 = UNet_up_block(16, 32, 16, 15)
-        self.up_sampling = torch.nn.Upsample(size=[23, 1024, 1024], mode='trilinear')
+        self.up_block3 = UNet_up_block(128, 256, 128, 9)
+        self.up_block4 = UNet_up_block(64, 128, 64, 10)
+        self.up_block5 = UNet_up_block(32, 64, 32, 12)
+        self.up_block6 = UNet_up_block(16, 32, 16, 16)
+        self.up_sampling = torch.nn.Upsample(size=[24, 1024, 1024], mode='trilinear')
         self.last_conv1 = torch.nn.Conv3d(16, 16, 3, padding=1)
         self.last_bn = torch.nn.BatchNorm3d(16)
         self.last_conv2 = torch.nn.Conv3d(16, 1, 1, padding=0)
@@ -135,17 +135,17 @@ def image_ids_in(root_dir, ignore=['.DS_Store', 'trainset_summary.csv', 'stage2_
 
 def dataloader(mode='test'):
     try:
-        with open(mode + '_0219.pickle', 'rb') as f:
+        with open(mode + '_0319.pickle', 'rb') as f:
             images = pickle.load(f)
     except:
         # imgs = np.zeros(shape=(1, 1, 7, 1024, 1024), dtype=np.float32)  # change patch shape if necessary
         images = {}
         images['Image'] = []
         images['ID'] = []
-        handles = image_ids_in('../Nuclei')
+        handles = image_ids_in('../Nuclei_20210319')
         # images['Dim'] = []
         for i in handles:
-            im = io.imread('../Nuclei/'+i)
+            im = io.imread('../Nuclei_20210319/'+i)
             im = im / im.max() * 255
             im = im / 255  # Normalization
             im = np.expand_dims(im, axis=0)
@@ -153,9 +153,9 @@ def dataloader(mode='test'):
             images['Image'].append(im)
             images['ID'].append(i)
 
-        with open('../inputs/' + mode + '_0219.pickle', 'wb') as f:
+        with open('../inputs/' + mode + '_0319.pickle', 'wb') as f:
             pickle.dump(images, f)
-        with open('../inputs/' + mode + '_0219.pickle', 'rb') as f:
+        with open('../inputs/' + mode + '_0319.pickle', 'rb') as f:
             images = pickle.load(f)
     return images
 
@@ -163,10 +163,10 @@ def dataloader(mode='test'):
 def mem_efficient_test(model, mode):
     if not os.path.exists(output):
         os.makedirs(output)
-    handles = image_ids_in('../Nuclei')
+    handles = image_ids_in('../Nuclei_20210319')
     for i in handles:
         torch.cuda.empty_cache()
-        im = io.imread('../Nuclei/' + i)
+        im = io.imread('../Nuclei_20210319/' + i)
         im = im / im.max() * 255
         im = im / 255  # Normalization
         im = np.expand_dims(im, axis=0)
